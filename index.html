@@ -264,6 +264,7 @@ textarea.fc{resize:vertical;min-height:72px}
   <!-- AGENDA -->
   <div class="tab" id="tab-agenda">
     <div class="agh"><div class="agt">Agenda de Reuniões <span id="ag-count" style="font-size:14px;font-weight:600;color:var(--blue)"></span></div><button class="btn-add" onclick="openAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Agendar</button></div>
+    <div id="dbg-bar" style="display:none;padding:8px 16px;background:#fff3cd;border-bottom:1px solid #ffc107;font-size:12px;color:#856404"></div>
     <div id="aglist"></div>
   </div>
 
@@ -389,10 +390,19 @@ function startListeners(){
     meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
     console.log('[SESÉ] Reuniões carregadas do Firebase:', meetings.length, meetings.map(m=>m.date+' '+m.title));
     renderAgenda(); renderStatus();
-    // Atualiza contador no header
+    // Atualiza contador + barra de debug
     const cnt=meetings.filter(m=>m.status!=='cancelled').length;
     const el=document.getElementById('ag-count');
     if(el) el.textContent=cnt>0?'('+cnt+')':'';
+    const dbg=document.getElementById('dbg-bar');
+    if(dbg){
+      if(cnt>0){
+        dbg.style.display='none';
+      } else {
+        dbg.style.display='block';
+        dbg.textContent='⚠️ Firebase conectado mas sem reuniões. Tente agendar uma nova.';
+      }
+    }
   });
 }
 function monitorConn(){
