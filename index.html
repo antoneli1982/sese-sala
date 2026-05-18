@@ -592,7 +592,8 @@ function saveMeet(){
   if(!start||!end){toast('❌ PAROU: horário vazio','err');console.warn('[DEBUG] Sem horário');return;}
   if(toM(end)<=toM(start)){toast('❌ PAROU: término <= início','err');console.warn('[DEBUG] Horário inválido');return;}
 
-  const conflict=meetings.find(m=>m.status==='scheduled'&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
+  const activeSt=['now','soon','scheduled'];
+  const conflict=meetings.find(m=>activeSt.includes(mSt(m))&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
   if(conflict){
     console.warn('[DEBUG] Conflito detectado:', conflict);
     toast(`❌ PAROU: conflito com "${conflict.title}" (${conflict.start}–${conflict.end})`,'err');
