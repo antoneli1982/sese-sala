@@ -37,8 +37,8 @@ header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:ce
 .tab.on{display:flex;flex-direction:column}
 .bnav{background:var(--navy);padding:6px 8px;display:flex;gap:2px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08)}
 .nb{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:10px;transition:background .2s}
-.nb svg{width:18px;height:18px;color:rgba(255,255,255,.32);transition:color .2s}
-.nb span{font-size:9px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:.2px;transition:color .2s}
+.nb svg{width:26px;height:26px;color:rgba(255,255,255,.32);transition:color .2s}
+.nb span{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:.2px;transition:color .2s}
 .nb.on svg,.nb.on span{color:var(--blue)}
 .nb:hover{background:rgba(255,255,255,.06)}
 /* clock */
@@ -226,7 +226,6 @@ textarea.fc{resize:vertical;min-height:72px}
 <nav class="bnav">
   <button class="nb on" id="nb-status" onclick="goTab('status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Status</span></button>
   <button class="nb" id="nb-agenda" onclick="goTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span></button>
-  <button class="nb" id="nb-qr" onclick="goTab('qr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/><path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/></svg><span>QR Code</span></button>
   <button class="nb" id="nb-edit" onclick="goTab('edit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Editar</span></button>
 </nav>
 
@@ -271,24 +270,6 @@ textarea.fc{resize:vertical;min-height:72px}
     <div class="agh"><div class="agt">Agenda de Reuniões <span id="ag-count" style="font-size:14px;font-weight:600;color:var(--blue)"></span></div><button class="btn-add" onclick="openAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Agendar</button></div>
     <div id="dbg-bar" style="display:none;padding:8px 16px;background:#fff3cd;border-bottom:1px solid #ffc107;font-size:12px;color:#856404"></div>
     <div id="aglist"></div>
-  </div>
-
-  <!-- QR -->
-  <div class="tab" id="tab-qr">
-    <div class="qrpg">
-      <div class="qrbx">
-        <svg viewBox="0 0 160 36" width="120" height="27" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="sp2" patternUnits="userSpaceOnUse" width="160" height="9"><rect width="160" height="6" fill="#5068F0"/></pattern><clipPath id="sc2"><text x="3" y="33" font-family="'Barlow Condensed',sans-serif" font-style="italic" font-weight="800" font-size="40" letter-spacing="1">SESÉ</text></clipPath></defs><rect width="160" height="36" fill="url(#sp2)" clip-path="url(#sc2)"/></svg>
-        <div style="margin-top:20px"><img id="qrimg" src="" alt="QR Code" style="width:200px;height:200px;border-radius:10px;background:var(--g1)"/></div>
-        <div class="qrn" id="qrn">—</div>
-        <div class="qrf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="qrf">—</span></div>
-        <div class="qrd"></div>
-        <div class="qrh">📱 Escaneie para acessar a agenda<br/>e o status desta sala em tempo real</div>
-      </div>
-      <div class="qra">
-        <button class="bqr bqp" onclick="printQR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
-        <button class="bqr bqc" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Copiar link</button>
-      </div>
-    </div>
   </div>
 
   <!-- EDITAR -->
@@ -352,14 +333,6 @@ textarea.fc{resize:vertical;min-height:72px}
   </div>
 </div>
 
-<!-- PRINT -->
-<div id="parea" style="display:none;flex-direction:column;align-items:center;gap:16px">
-  <svg viewBox="0 0 200 46" width="180" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="sp3" patternUnits="userSpaceOnUse" width="200" height="11"><rect width="200" height="7.5" fill="#5068F0"/></pattern><clipPath id="sc3"><text x="4" y="42" font-family="'Barlow Condensed',sans-serif" font-style="italic" font-weight="800" font-size="50" letter-spacing="1">SESÉ</text></clipPath></defs><rect width="200" height="46" fill="url(#sp3)" clip-path="url(#sc3)"/></svg>
-  <img id="pqr" src="" style="width:240px;height:240px;border-radius:12px"/>
-  <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:28px;color:#1a1e38;text-align:center" id="pn">—</div>
-  <div style="font-size:13px;color:#9099be;text-align:center" id="pf">—</div>
-  <div style="font-size:12px;color:#c8cce0;text-align:center">📱 Escaneie para ver agenda e status em tempo real</div>
-</div>
 <!-- FAB - Botão flutuante sempre visível em qualquer aba -->
 <button class="fab" onclick="openAdd()" aria-label="Nova reunião">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -434,6 +407,22 @@ function monitorConn(){
     const cnt=meetings.length;
     document.getElementById('synctxt').textContent=ok?'🟢 Sincronizado · '+cnt+' reunião(ões)':'🟡 Reconectando…';
   });
+}
+function saveLocal(){
+  try{
+    const locals=meetings.filter(m=>m._k&&m._k.startsWith('l'));
+    localStorage.setItem('sese_meetings',JSON.stringify(locals));
+  }catch(e){console.warn('[SESÉ] Não foi possível salvar localmente:',e);}
+}
+function loadLocal(){
+  try{
+    const raw=localStorage.getItem('sese_meetings');
+    if(raw){
+      const arr=JSON.parse(raw);
+      arr.forEach(m=>{if(!meetings.find(x=>x._k===m._k))meetings.push(m);});
+      meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
+    }
+  }catch(e){console.warn('[SESÉ] Não foi possível carregar dados locais:',e);}
 }
 function writeRoom(){if(db)db.ref(rpath+'/room').set(room);else localStorage.setItem('sese_r',JSON.stringify(room));}
 function openSetup(){document.getElementById('ov-setup').classList.add('open');}
@@ -595,20 +584,50 @@ function openAdd(preDate){
 }
 function saveMeet(){
   const title=document.getElementById('mt').value.trim(),date=document.getElementById('md').value,start=document.getElementById('ms').value,end=document.getElementById('me').value;
-  if(!title){toast('Informe o título','err');return;}
-  if(!date){toast('Informe a data','err');return;}
-  if(!start||!end){toast('Informe horário de início e término','err');return;}
-  if(toM(end)<=toM(start)){toast('O término deve ser após o início','err');return;}
+  console.log('[DEBUG saveMeet] Valores lidos:', {title, date, start, end});
+  toast('🔍 Verificando campos…','info');
+
+  if(!title){toast('❌ PAROU: título vazio','err');console.warn('[DEBUG] Sem título');return;}
+  if(!date){toast('❌ PAROU: data vazia','err');console.warn('[DEBUG] Sem data');return;}
+  if(!start||!end){toast('❌ PAROU: horário vazio','err');console.warn('[DEBUG] Sem horário');return;}
+  if(toM(end)<=toM(start)){toast('❌ PAROU: término <= início','err');console.warn('[DEBUG] Horário inválido');return;}
+
   const conflict=meetings.find(m=>m.status==='scheduled'&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
-  if(conflict){toast(`Conflito com "${conflict.title}" (${conflict.start}–${conflict.end})`,'err');return;}
+  if(conflict){
+    console.warn('[DEBUG] Conflito detectado:', conflict);
+    toast(`❌ PAROU: conflito com "${conflict.title}" (${conflict.start}–${conflict.end})`,'err');
+    return;
+  }
+
+  console.log('[DEBUG] Validação OK. db=', db ? 'Firebase conectado' : 'NULL (modo local)');
+  toast('✅ Validação OK — salvando…','info');
   const data={title,date,start,end,resp:document.getElementById('mr').value.trim(),participants:document.getElementById('mp').value.trim(),notes:document.getElementById('mn').value.trim(),status:'scheduled'};
   if(db){
+    console.log('[DEBUG] Chamando Firebase push em:', rpath+'/meetings');
     db.ref(rpath+'/meetings').push(data)
-      .then(()=>{ closeOv('ov-meet'); toast('Reunião agendada: '+title,'ok'); })
-      .catch(e=>{ toast('Erro ao salvar no Firebase: '+e.message,'err'); console.error('Firebase push error:',e); });
+      .then(ref=>{
+        console.log('[DEBUG] Firebase push OK! Key:', ref.key);
+        toast('✅ Firebase salvou: '+title,'ok');
+        closeOv('ov-meet');
+      })
+      .catch(e=>{
+        console.error('[DEBUG] Firebase push ERRO:', e.code, e.message);
+        toast('❌ Firebase erro: '+e.message,'err');
+        // Fallback local
+        const localKey='l'+Date.now();
+        meetings.push({...data,_k:localKey});
+        saveLocal();
+        renderAgenda(); renderStatus();
+        closeOv('ov-meet');
+        toast('Salvo localmente como fallback','info');
+      });
     return;
   } else {
-    meetings.push({...data,_k:'l'+Date.now()});renderAgenda();renderStatus();
+    console.log('[DEBUG] db=null, salvando localmente');
+    const localKey='l'+Date.now();
+    meetings.push({...data,_k:localKey});
+    saveLocal();
+    renderAgenda();renderStatus();
   }
   closeOv('ov-meet');
   toast('Reunião agendada (local): '+title,'ok');
@@ -619,8 +638,8 @@ function openCancel(key,title){
   document.getElementById('ov-conf').classList.add('open');
 }
 function doCancel(){
-  if(db&&cancelTarget){db.ref(rpath+'/meetings/'+cancelTarget).update({status:'cancelled'});}
-  else{const m=meetings.find(m=>m._k===cancelTarget);if(m)m.status='cancelled';renderAgenda();renderStatus();}
+  if(db&&cancelTarget&&!cancelTarget.startsWith('l')){db.ref(rpath+'/meetings/'+cancelTarget).update({status:'cancelled'});}
+  else{const m=meetings.find(m=>m._k===cancelTarget);if(m){m.status='cancelled';saveLocal();}renderAgenda();renderStatus();}
   closeOv('ov-conf');toast('Reunião cancelada','info');cancelTarget=null;
 }
 
@@ -718,7 +737,7 @@ Object.assign(window,{
     console.error('[SESÉ] Firebase indisponível, rodando em modo local:',e);
   }
   try{renderStatus();}catch(e){console.error('[SESÉ] Erro renderStatus:',e);}
-  try{renderAgenda();}catch(e){console.error('[SESÉ] Erro renderAgenda:',e);}
+  try{loadLocal();renderAgenda();}catch(e){console.error('[SESÉ] Erro renderAgenda:',e);}
   console.log('[SESÉ] App pronto. openAdd em window:',typeof window.openAdd);
 })();
 </script>
