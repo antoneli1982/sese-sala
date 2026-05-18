@@ -21,9 +21,15 @@
   --r:14px;--rs:10px;--rl:20px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{font-family:'DM Sans',sans-serif;background:var(--navy);display:flex;flex-direction:column}
-header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+html{height:100%;height:-webkit-fill-available}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--navy);
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+  overflow:hidden;
+  -webkit-text-size-adjust:100%;
+}
+header{background:var(--navy);padding:14px 20px 10px;padding-top:max(14px,env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .logo{height:34px;display:block}
 .hdr{display:flex;align-items:center;gap:8px}
 .hdn{font-size:12px;font-weight:600;color:rgba(255,255,255,.82)}
@@ -32,11 +38,11 @@ header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:ce
 .dot.wait{background:var(--warn);animation:bl 1.1s infinite}
 .dot.err{background:var(--red)}
 @keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
-.tabs{flex:1;overflow:hidden;background:var(--bg);border-radius:24px 24px 0 0;margin-top:2px;display:flex;flex-direction:column}
-.tab{display:none;flex:1;overflow-y:auto;padding-bottom:12px;-webkit-overflow-scrolling:touch}
+.tabs{flex:1;overflow:hidden;background:var(--bg);border-radius:24px 24px 0 0;margin-top:2px;display:flex;flex-direction:column;min-height:0}
+.tab{display:none;flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:24px;-webkit-overflow-scrolling:touch}
 .tab.on{display:flex;flex-direction:column}
-.bnav{background:var(--navy);padding:6px 8px;display:flex;gap:2px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08)}
-.nb{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:10px;transition:background .2s}
+.bnav{background:var(--navy);padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));display:flex;gap:2px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08)}
+.nb{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:10px;transition:background .2s;-webkit-tap-highlight-color:transparent;min-height:52px;justify-content:center}
 .nb svg{width:26px;height:26px;color:rgba(255,255,255,.32);transition:color .2s}
 .nb span{font-size:11px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:.2px;transition:color .2s}
 .nb.on svg,.nb.on span{color:var(--blue)}
@@ -101,10 +107,13 @@ header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:ce
 .mnot{font-size:11px;color:var(--g6);margin-top:6px;font-style:italic}
 .bdg{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:6px}
 .b-ok{background:var(--lt);color:var(--blue)} .b-can{background:var(--g1);color:var(--g4)} .b-done{background:var(--okl);color:var(--ok)} .b-now{background:var(--redl);color:var(--red)} .b-soon{background:var(--warnl);color:var(--warn)}
-.mact{padding:8px 14px 12px}
+.mact{padding:8px 14px 12px;display:flex;gap:8px;flex-wrap:wrap}
 .btn-cm{padding:7px 14px;border-radius:8px;border:none;background:var(--redl);color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .2s}
 .btn-cm:hover{background:var(--red);color:#fff}
 .btn-cm svg{width:12px;height:12px}
+.btn-edit{padding:7px 14px;border-radius:8px;border:none;background:var(--lt);color:var(--blue);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .2s}
+.btn-edit:hover{background:var(--blue);color:#fff}
+.btn-edit svg{width:12px;height:12px}
 .eag{text-align:center;padding:52px 24px}
 .eag svg{width:44px;height:44px;margin:0 auto 12px;display:block;color:var(--g3)}
 .eag p{font-size:14px;color:var(--g4)}
@@ -163,7 +172,7 @@ textarea.fc{resize:vertical;min-height:72px}
 /* overlays */
 .ov{position:fixed;inset:0;background:rgba(26,30,56,.6);backdrop-filter:blur(6px);z-index:999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
 .ov.open{opacity:1;pointer-events:all}
-.sheet{background:var(--w);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(80,104,240,.18);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.sheet{background:var(--w);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:92dvh;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 -8px 40px rgba(80,104,240,.18);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);padding-bottom:env(safe-area-inset-bottom)}
 .ov.open .sheet{transform:translateY(0)}
 .sbar{width:40px;height:4px;background:var(--g2);border-radius:2px;margin:12px auto 0}
 .mhd{padding:16px 22px 0;display:flex;align-items:center;justify-content:space-between}
@@ -207,6 +216,18 @@ textarea.fc{resize:vertical;min-height:72px}
 .toast.ok{border-left:3px solid var(--ok)} .toast.info{border-left:3px solid var(--blue)} .toast.err{border-left:3px solid var(--red)}
 @keyframes tin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 @keyframes tout{from{opacity:1}to{opacity:0;transform:translateX(24px)}}
+@media(max-width:480px){
+  .ct{font-size:40px}
+  .cbar{padding:12px 16px 16px}
+  .sc{margin:0 10px}
+  .btn-add{padding:8px 14px;font-size:12px}
+  .agt{font-size:20px}
+  .fc{font-size:16px} /* evita zoom automático no iOS */
+  .mbdy{padding:14px 16px}
+  .mft{padding:0 16px 20px}
+  .qbtns{gap:6px;margin:10px 10px 0}
+  .qb{padding:8px 4px;font-size:11px}
+}
 @media print{body *{visibility:hidden}#parea,#parea *{visibility:visible}#parea{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;gap:16px;padding:40px}}
 /* FAB - botão flutuante sempre visível para garantir agendamento em qualquer aba/dispositivo */
 .fab{position:fixed;right:18px;bottom:74px;z-index:500;display:flex;align-items:center;gap:8px;padding:14px 20px;background:var(--blue);color:#fff;border:none;border-radius:30px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(80,104,240,.45);transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
@@ -219,6 +240,9 @@ textarea.fc{resize:vertical;min-height:72px}
 <header>
   <img src="data:image/png;base64,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" alt="SESÉ" style="height:36px;display:block;object-fit:contain"/>
   <div class="hdr">
+    <button onclick="forceRefresh()" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;gap:6px;-webkit-tap-highlight-color:transparent" title="Atualizar">
+      <svg id="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2.5" width="18" height="18"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.73-7.22"/></svg>
+    </button>
     <div class="dot wait" id="cdot" title="Conectando…"></div>
     <span class="hdn" id="hdn">Sala Conecta</span>
   </div>
@@ -310,7 +334,7 @@ textarea.fc{resize:vertical;min-height:72px}
 <div class="ov" id="ov-meet" onclick="if(event.target===this)closeOv('ov-meet')">
   <div class="sheet">
     <div class="sbar"></div>
-    <div class="mhd"><span class="mtit">Nova Reunião</span><button class="bx" onclick="closeOv('ov-meet')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="mhd"><span class="mtit" id="meet-modal-title">Nova Reunião</span><button class="bx" onclick="closeOv('ov-meet')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
     <div class="mbdy">
       <div class="fg"><label class="fl">Título *</label><input class="fc" id="mt" type="text" placeholder="Ex: Reunião de Planejamento"/></div>
       <div class="fg"><label class="fl">Data *</label><input class="fc" id="md" type="date"/></div>
@@ -319,7 +343,7 @@ textarea.fc{resize:vertical;min-height:72px}
       <div class="fg"><label class="fl">Participantes</label><input class="fc" id="mp" type="text" placeholder="Equipe, RH…"/></div>
       <div class="fg"><label class="fl">Observações</label><textarea class="fc" id="mn" placeholder="Pauta, link de meet…" style="min-height:60px"></textarea></div>
     </div>
-    <div class="mft"><button class="bmn" onclick="closeOv('ov-meet')">Cancelar</button><button class="bms" onclick="saveMeet()">Confirmar Agendamento</button></div>
+    <div class="mft"><button class="bmn" onclick="closeOv('ov-meet')">Cancelar</button><button class="bms" id="meet-modal-btn" onclick="saveMeet()">Confirmar Agendamento</button></div>
   </div>
 </div>
 
@@ -348,7 +372,7 @@ window.addEventListener('unhandledrejection',e=>{
 
 const RES=['Projetor','TV/Monitor','Videoconferência','Quadro Branco','Wi-Fi','Ar-condicionado','Café/Água','Acessibilidade'];
 let room={name:'Sala Conecta',cap:12,floor:'1º Andar',resp:'Responsável',resources:['Projetor','Wi-Fi'],desc:'',appUrl:location.href.split('?')[0],manualStatus:null};
-let meetings=[],cancelTarget=null,db=null,rpath='sala-1';
+let meetings=[],cancelTarget=null,editingKey=null,db=null,rpath='sala-1';
 
 /* ── FIREBASE ── */
 function connectFB(){
@@ -417,6 +441,23 @@ function monitorConn(){
     d.title=ok?'Conectado — sincronizando em tempo real':'Reconectando…';
     document.getElementById('synctxt').textContent=ok?'🟢 Sincronizado · '+meetings.length+' reunião(ões)':'🟡 Reconectando…';
   });
+
+  // Reconecta quando o app volta ao primeiro plano (mobile)
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&db){
+      try{
+        firebase.database().goOnline();
+        setTimeout(()=>{renderAgenda();renderStatus();},600);
+      }catch(e){}
+    }
+  });
+
+  // Refresh a cada 60s para garantir dados atualizados no mobile
+  setInterval(()=>{
+    if(document.visibilityState==='visible'){
+      renderAgenda(); renderStatus();
+    }
+  },60000);
 }
 function saveLocal(){
   // Salva TODAS as reuniões pendentes (com chave local 'l...')
@@ -524,6 +565,7 @@ function renderAgenda(){
   const ico='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   const ico2='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const ico3='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const icoEdit='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
 
   // SEM FILTRO — agrupa TODAS as reuniões do Firebase por data
   const grp={};meetings.forEach(m=>{if(!grp[m.date])grp[m.date]=[];grp[m.date].push(m);});
@@ -559,7 +601,10 @@ function renderAgenda(){
             ${m.notes?`<div class="mnot">${m.notes}</div>`:''}
             ${bmap[st]||''}
           </div>
-          ${can?`<div class="mact"><button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar reunião</button></div>`:''}
+          ${can?`<div class="mact">
+            <button class="btn-edit" onclick="openEdit('${cid}')">${icoEdit}Editar</button>
+            <button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar</button>
+          </div>`:''}
           ${isDel?`<div class="mact"><button class="btn-cm" onclick="deleteMeet('${cid}','${m.title.replace(/'/g,"\\'")}')" style="background:var(--redl);color:var(--red)">${ico3}Excluir permanentemente</button></div>`:''}
         </div>
       </div>`;
@@ -582,6 +627,9 @@ function renderAgenda(){
 
 /* ── MEETING CRUD ── */
 function openAdd(preDate){
+  editingKey=null;
+  document.getElementById('meet-modal-title').textContent='Nova Reunião';
+  document.getElementById('meet-modal-btn').textContent='Confirmar Agendamento';
   console.log('[SESÉ] openAdd chamado, data inicial:',preDate||today());
   try{
     ['mt','mr','mp','mn'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -597,6 +645,21 @@ function openAdd(preDate){
     toast('Erro ao abrir formulário: '+e.message,'err');
   }
 }
+function openEdit(key){
+  const m=meetings.find(x=>x._k===key);
+  if(!m){toast('Reunião não encontrada','err');return;}
+  editingKey=key;
+  document.getElementById('meet-modal-title').textContent='Editar Reunião';
+  document.getElementById('meet-modal-btn').textContent='Salvar Alterações';
+  document.getElementById('mt').value=m.title||'';
+  document.getElementById('md').value=m.date||'';
+  document.getElementById('ms').value=m.start||'';
+  document.getElementById('me').value=m.end||'';
+  document.getElementById('mr').value=m.resp||'';
+  document.getElementById('mp').value=m.participants||'';
+  document.getElementById('mn').value=m.notes||'';
+  document.getElementById('ov-meet').classList.add('open');
+}
 function saveMeet(){
   const title=document.getElementById('mt').value.trim(),
         date=document.getElementById('md').value,
@@ -609,34 +672,47 @@ function saveMeet(){
   if(toM(end)<=toM(start)){toast('O término deve ser após o início','err');return;}
 
   const activeSt=['now','soon','scheduled'];
-  const conflict=meetings.find(m=>activeSt.includes(mSt(m))&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
+  const conflict=meetings.find(m=>m._k!==editingKey&&activeSt.includes(mSt(m))&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
   if(conflict){toast('Conflito com "'+conflict.title+'" ('+conflict.start+'–'+conflict.end+')','err');return;}
 
-  const localKey='l'+Date.now();
   const data={title,date,start,end,
     resp:document.getElementById('mr').value.trim(),
     participants:document.getElementById('mp').value.trim(),
     notes:document.getElementById('mn').value.trim(),
-    status:'scheduled',_k:localKey};
+    status:'scheduled'};
 
-  // 1. Salva IMEDIATAMENTE local — sempre funciona
-  meetings.push({...data});
+  // MODO EDIÇÃO
+  if(editingKey){
+    const key=editingKey;
+    const idx=meetings.findIndex(m=>m._k===key);
+    if(idx>=0) meetings[idx]={...meetings[idx],...data};
+    saveLocal();
+    renderAgenda(); renderStatus();
+    closeOv('ov-meet');
+    toast('Reunião atualizada: '+title,'ok');
+    // Sincroniza com Firebase
+    if(db && !key.startsWith('l')){
+      db.ref(rpath+'/meetings/'+key).update(data)
+        .catch(e=>toast('Erro Firebase: '+e.message,'err'));
+    }
+    editingKey=null;
+    return;
+  }
+
+  // MODO CRIAÇÃO
+  const localKey='l'+Date.now();
+  meetings.push({...data,_k:localKey});
   saveLocal();
-  renderAgenda();
-  renderStatus();
+  renderAgenda(); renderStatus();
   closeOv('ov-meet');
   toast('Reunião agendada: '+title,'ok');
 
-  // 2. Tenta sincronizar com Firebase em background
   if(db){
     const fbData={title,date,start,end,resp:data.resp,participants:data.participants,notes:data.notes,status:'scheduled'};
     db.ref(rpath+'/meetings').push(fbData)
-      .then(ref=>{
-        console.log('[SESÉ] Firebase confirmou. Key:', ref.key);
-        // localStorage será limpo automaticamente quando o listener receber a confirmação do servidor
-      })
+      .then(ref=>{ console.log('[SESÉ] Firebase confirmou. Key:', ref.key); })
       .catch(e=>{
-        console.error('[SESÉ] Firebase rejeitou, mantendo local:', e.message);
+        console.error('[SESÉ] Firebase rejeitou:', e.message);
         toast('⚠️ Firebase: '+e.message+' (salvo localmente)','err');
       });
   }
@@ -709,6 +785,13 @@ function goTab(t){
   if(t==='qr')updateQR();
 }
 function closeOv(id){document.getElementById(id).classList.remove('open');}
+function forceRefresh(){
+  const icon=document.getElementById('refresh-icon');
+  if(icon){icon.style.transition='transform .7s';icon.style.transform='rotate(360deg)';setTimeout(()=>{icon.style.transition='';icon.style.transform='';},750);}
+  if(db){try{firebase.database().goOnline();}catch(e){}}
+  loadLocal(); renderAgenda(); renderStatus();
+  toast('Atualizado!','ok');
+}
 
 /* ── CLOCK ── */
 function tick(){
@@ -739,8 +822,8 @@ const FB_CONFIG = {
 /* CRÍTICO: expor todas as funções em window para onclick="" funcionar
    em qualquer WebView (iOS WKWebView, Android antigo, modo estrito etc.) */
 Object.assign(window,{
-  openAdd, saveMeet, openCancel, doCancel, deleteMeet, closeOv, openSetup, connectFB,
-  setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast
+  openAdd, openEdit, saveMeet, openCancel, doCancel, deleteMeet, closeOv, forceRefresh,
+  openSetup, connectFB, setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast
 });
 
 (function(){
