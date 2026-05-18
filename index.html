@@ -208,6 +208,11 @@ textarea.fc{resize:vertical;min-height:72px}
 @keyframes tin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
 @keyframes tout{from{opacity:1}to{opacity:0;transform:translateX(24px)}}
 @media print{body *{visibility:hidden}#parea,#parea *{visibility:visible}#parea{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;gap:16px;padding:40px}}
+/* FAB - botão flutuante sempre visível para garantir agendamento em qualquer aba/dispositivo */
+.fab{position:fixed;right:18px;bottom:74px;z-index:500;display:flex;align-items:center;gap:8px;padding:14px 20px;background:var(--blue);color:#fff;border:none;border-radius:30px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 24px rgba(80,104,240,.45);transition:transform .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.fab:hover,.fab:active{background:var(--dk);transform:translateY(-2px);box-shadow:0 8px 28px rgba(80,104,240,.55)}
+.fab svg{width:18px;height:18px}
+.fab:active{transform:scale(.96)}
 </style>
 </head>
 <body>
@@ -355,9 +360,24 @@ textarea.fc{resize:vertical;min-height:72px}
   <div style="font-size:13px;color:#9099be;text-align:center" id="pf">—</div>
   <div style="font-size:12px;color:#c8cce0;text-align:center">📱 Escaneie para ver agenda e status em tempo real</div>
 </div>
+<!-- FAB - Botão flutuante sempre visível em qualquer aba -->
+<button class="fab" onclick="openAdd()" aria-label="Nova reunião">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  Agendar
+</button>
 <div id="toasts"></div>
 
 <script>
+/* ── GLOBAL ERROR HANDLER (mostra qualquer falha como toast) ── */
+window.addEventListener('error',e=>{
+  console.error('[SESÉ] Erro JS:',e.error||e.message,e.filename,e.lineno);
+  try{toast('Erro: '+(e.message||'falha desconhecida'),'err');}catch(_){}
+});
+window.addEventListener('unhandledrejection',e=>{
+  console.error('[SESÉ] Promise rejeitada:',e.reason);
+  try{toast('Erro: '+(e.reason?.message||e.reason||'falha desconhecida'),'err');}catch(_){}
+});
+
 const RES=['Projetor','TV/Monitor','Videoconferência','Quadro Branco','Wi-Fi','Ar-condicionado','Café/Água','Acessibilidade'];
 let room={name:'Sala Conecta',cap:12,floor:'1º Andar',resp:'Responsável',resources:['Projetor','Wi-Fi'],desc:'',appUrl:location.href.split('?')[0],manualStatus:null};
 let meetings=[],cancelTarget=null,db=null,rpath='sala-1';
@@ -484,7 +504,7 @@ function buildWeekStrip(allMeetings){
     const cnt=allMeetings.filter(m=>m.date===date&&m.status!=='cancelled').length;
     const isToday=date===todayStr;
     const num=new Date(date+'T00:00:00').getDate();
-    return`<div class="wday${isToday?' wday-today':''}${cnt>0?' wday-hasmtg':''}" onclick="scrollToDay('${date}')">
+    return`<div class="wday${isToday?' wday-today':''}${cnt>0?' wday-hasmtg':''}" onclick="openAdd('${date}')" title="Agendar para ${date}">
       <span class="wday-name">${abbr[i]}</span>
       <span class="wday-num">${num}</span>
       ${cnt>0?`<span class="wday-cnt${isToday?' wday-cnt-today':''}">${cnt}</span>`:'<span class="wday-dot-empty"></span>'}
@@ -557,13 +577,21 @@ function renderAgenda(){
 }
 
 /* ── MEETING CRUD ── */
-function openAdd(){
-  ['mt','mr','mp','mn'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('md').value=today();
-  document.getElementById('md').removeAttribute('min');
-  document.getElementById('ms').value='';
-  document.getElementById('me').value='';
-  document.getElementById('ov-meet').classList.add('open');
+function openAdd(preDate){
+  console.log('[SESÉ] openAdd chamado, data inicial:',preDate||today());
+  try{
+    ['mt','mr','mp','mn'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    const md=document.getElementById('md');
+    if(md){md.value=preDate||today();md.removeAttribute('min');}
+    const ms=document.getElementById('ms');if(ms)ms.value='';
+    const me=document.getElementById('me');if(me)me.value='';
+    const ov=document.getElementById('ov-meet');
+    if(!ov){toast('Modal não encontrado no DOM','err');return;}
+    ov.classList.add('open');
+  }catch(e){
+    console.error('[SESÉ] Falha em openAdd:',e);
+    toast('Erro ao abrir formulário: '+e.message,'err');
+  }
 }
 function saveMeet(){
   const title=document.getElementById('mt').value.trim(),date=document.getElementById('md').value,start=document.getElementById('ms').value,end=document.getElementById('me').value;
@@ -668,21 +696,30 @@ const FB_CONFIG = {
 };
 
 /* ── INIT ── */
+/* CRÍTICO: expor todas as funções em window para onclick="" funcionar
+   em qualquer WebView (iOS WKWebView, Android antigo, modo estrito etc.) */
+Object.assign(window,{
+  openAdd, saveMeet, openCancel, doCancel, closeOv, openSetup, connectFB,
+  setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast
+});
+
 (function(){
-  // Preenche o form de setup com os valores fixos
-  document.getElementById('skey').value = FB_CONFIG.key;
-  document.getElementById('surl').value = FB_CONFIG.url;
-  document.getElementById('spid').value = FB_CONFIG.pid;
-  document.getElementById('srid').value = FB_CONFIG.rid;
-  // Conecta automaticamente sem mostrar tela de setup
+  try{
+    document.getElementById('skey').value = FB_CONFIG.key;
+    document.getElementById('surl').value = FB_CONFIG.url;
+    document.getElementById('spid').value = FB_CONFIG.pid;
+    document.getElementById('srid').value = FB_CONFIG.rid;
+  }catch(e){console.error('[SESÉ] Erro preenchendo setup:',e);}
   try{
     try{firebase.app();}catch{firebase.initializeApp({apiKey:FB_CONFIG.key,databaseURL:FB_CONFIG.url,projectId:FB_CONFIG.pid});}
     db=firebase.database(); rpath=FB_CONFIG.rid;
     startListeners(); monitorConn();
   }catch(e){
-    console.error('Firebase error:',e);
+    console.error('[SESÉ] Firebase indisponível, rodando em modo local:',e);
   }
-  renderStatus(); renderAgenda();
+  try{renderStatus();}catch(e){console.error('[SESÉ] Erro renderStatus:',e);}
+  try{renderAgenda();}catch(e){console.error('[SESÉ] Erro renderAgenda:',e);}
+  console.log('[SESÉ] App pronto. openAdd em window:',typeof window.openAdd);
 })();
 </script>
 </body>
