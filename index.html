@@ -380,21 +380,24 @@ function startListeners(){
   db.ref(rpath+'/meetings').on('value',snap=>{
     meetings=[];
     snap.forEach(c=>meetings.push({...c.val(),_k:c.key}));
+    // Merge local-only meetings that Firebase doesn't have
+    try{
+      const raw=localStorage.getItem('sese_meetings');
+      if(raw){
+        const locals=JSON.parse(raw);
+        locals.forEach(lm=>{if(!meetings.find(m=>m._k===lm._k))meetings.push(lm);});
+      }
+    }catch(e){}
     meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
     console.log('[SESÉ] Reuniões carregadas do Firebase:', meetings.length, meetings.map(m=>m.date+' '+m.title));
     renderAgenda(); renderStatus();
-    // Atualiza contador + barra de debug
     const cnt=meetings.filter(m=>m.status!=='cancelled').length;
     const el=document.getElementById('ag-count');
     if(el) el.textContent=cnt>0?'('+cnt+')':'';
     const dbg=document.getElementById('dbg-bar');
     if(dbg){
-      if(cnt>0){
-        dbg.style.display='none';
-      } else {
-        dbg.style.display='block';
-        dbg.textContent='⚠️ Firebase conectado mas sem reuniões. Tente agendar uma nova.';
-      }
+      if(cnt>0){dbg.style.display='none';}
+      else{dbg.style.display='block';dbg.textContent='⚠️ Firebase conectado mas sem reuniões. Tente agendar uma nova.';}
     }
   });
 }
@@ -608,30 +611,31 @@ function saveMeet(){
     db.ref(rpath+'/meetings').push(data)
       .then(ref=>{
         console.log('[DEBUG] Firebase push OK! Key:', ref.key);
-        toast('✅ Firebase salvou: '+title,'ok');
         closeOv('ov-meet');
+        toast('✅ Reunião agendada: '+title,'ok');
       })
       .catch(e=>{
         console.error('[DEBUG] Firebase push ERRO:', e.code, e.message);
-        toast('❌ Firebase erro: '+e.message,'err');
-        // Fallback local
+        // Salva localmente como fallback
         const localKey='l'+Date.now();
-        meetings.push({...data,_k:localKey});
+        data._k=localKey;
+        meetings.push({...data});
         saveLocal();
         renderAgenda(); renderStatus();
         closeOv('ov-meet');
-        toast('Salvo localmente como fallback','info');
+        toast('✅ Reunião salva localmente: '+title,'ok');
+        // Aviso sobre erro Firebase
+        setTimeout(()=>toast('⚠️ Firebase rejeitou ('+e.message+'). Verifique as regras.','err'),500);
       });
     return;
   } else {
-    console.log('[DEBUG] db=null, salvando localmente');
     const localKey='l'+Date.now();
     meetings.push({...data,_k:localKey});
     saveLocal();
     renderAgenda();renderStatus();
   }
   closeOv('ov-meet');
-  toast('Reunião agendada (local): '+title,'ok');
+  toast('✅ Reunião agendada (local): '+title,'ok');
 }
 function openCancel(key,title){
   cancelTarget=key;
