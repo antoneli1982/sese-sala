@@ -373,30 +373,40 @@ function startListeners(){
     else db.ref(rpath+'/room').set(room);
   });
   db.ref(rpath+'/meetings').on('value',snap=>{
-    meetings=[];
-    snap.forEach(c=>meetings.push({...c.val(),_k:c.key}));
-    // Merge local-only meetings that Firebase doesn't have yet (match by content)
+    const fbMeetings=[];
+    snap.forEach(c=>fbMeetings.push({...c.val(),_k:c.key}));
+
+    // Limpa do localStorage reuniões que o Firebase já confirmou (por conteúdo)
     try{
       const raw=localStorage.getItem('sese_meetings');
       if(raw){
         const locals=JSON.parse(raw);
-        locals.forEach(lm=>{
-          const isDupe=meetings.find(m=>m.title===lm.title&&m.date===lm.date&&m.start===lm.start&&m.status===lm.status);
-          if(!isDupe) meetings.push(lm);
+        const pending=locals.filter(lm=>
+          !fbMeetings.find(fm=>fm.title===lm.title&&fm.date===lm.date&&fm.start===lm.start)
+        );
+        localStorage.setItem('sese_meetings',JSON.stringify(pending));
+      }
+    }catch(e){}
+
+    // Monta lista final: Firebase + pendentes locais ainda não confirmados
+    meetings=[...fbMeetings];
+    try{
+      const raw=localStorage.getItem('sese_meetings');
+      if(raw){
+        JSON.parse(raw).forEach(lm=>{
+          if(!meetings.find(m=>m.title===lm.title&&m.date===lm.date&&m.start===lm.start))
+            meetings.push(lm);
         });
       }
     }catch(e){}
+
     meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
-    console.log('[SESÉ] Reuniões carregadas do Firebase:', meetings.length, meetings.map(m=>m.date+' '+m.title));
     renderAgenda(); renderStatus();
     const cnt=meetings.filter(m=>m.status!=='cancelled').length;
     const el=document.getElementById('ag-count');
     if(el) el.textContent=cnt>0?'('+cnt+')':'';
     const dbg=document.getElementById('dbg-bar');
-    if(dbg){
-      if(cnt>0){dbg.style.display='none';}
-      else{dbg.style.display='block';dbg.textContent='⚠️ Firebase conectado mas sem reuniões. Tente agendar uma nova.';}
-    }
+    if(dbg){dbg.style.display=cnt>0?'none':'block';if(cnt===0)dbg.textContent='⚠️ Sem reuniões no Firebase.';}
   });
 }
 function monitorConn(){
@@ -405,25 +415,27 @@ function monitorConn(){
     const d=document.getElementById('cdot');
     d.className='dot '+(ok?'ok':'wait');
     d.title=ok?'Conectado — sincronizando em tempo real':'Reconectando…';
-    const cnt=meetings.length;
-    document.getElementById('synctxt').textContent=ok?'🟢 Sincronizado · '+cnt+' reunião(ões)':'🟡 Reconectando…';
+    document.getElementById('synctxt').textContent=ok?'🟢 Sincronizado · '+meetings.length+' reunião(ões)':'🟡 Reconectando…';
   });
 }
 function saveLocal(){
+  // Salva TODAS as reuniões pendentes (com chave local 'l...')
   try{
-    const locals=meetings.filter(m=>m._k&&m._k.startsWith('l'));
-    localStorage.setItem('sese_meetings',JSON.stringify(locals));
-  }catch(e){console.warn('[SESÉ] Não foi possível salvar localmente:',e);}
+    const pending=meetings.filter(m=>m._k&&m._k.startsWith('l'));
+    localStorage.setItem('sese_meetings',JSON.stringify(pending));
+  }catch(e){console.warn('[SESÉ] Erro ao salvar local:',e);}
 }
 function loadLocal(){
+  // Carrega pendentes e adiciona ao array meetings antes do Firebase responder
   try{
     const raw=localStorage.getItem('sese_meetings');
     if(raw){
-      const arr=JSON.parse(raw);
-      arr.forEach(m=>{if(!meetings.find(x=>x._k===m._k))meetings.push(m);});
+      JSON.parse(raw).forEach(m=>{
+        if(!meetings.find(x=>x._k===m._k)) meetings.push(m);
+      });
       meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
     }
-  }catch(e){console.warn('[SESÉ] Não foi possível carregar dados locais:',e);}
+  }catch(e){console.warn('[SESÉ] Erro ao carregar local:',e);}
 }
 function writeRoom(){if(db)db.ref(rpath+'/room').set(room);else localStorage.setItem('sese_r',JSON.stringify(room));}
 function openSetup(){document.getElementById('ov-setup').classList.add('open');}
@@ -620,15 +632,8 @@ function saveMeet(){
     const fbData={title,date,start,end,resp:data.resp,participants:data.participants,notes:data.notes,status:'scheduled'};
     db.ref(rpath+'/meetings').push(fbData)
       .then(ref=>{
-        // Remove local version do localStorage — Firebase já tem com chave própria
-        try{
-          const raw=localStorage.getItem('sese_meetings');
-          if(raw){
-            const filtered=JSON.parse(raw).filter(m=>m._k!==localKey);
-            localStorage.setItem('sese_meetings',JSON.stringify(filtered));
-          }
-        }catch(e){}
-        console.log('[SESÉ] Sincronizado com Firebase. Key:', ref.key);
+        console.log('[SESÉ] Firebase confirmou. Key:', ref.key);
+        // localStorage será limpo automaticamente quando o listener receber a confirmação do servidor
       })
       .catch(e=>{
         console.error('[SESÉ] Firebase rejeitou, mantendo local:', e.message);
