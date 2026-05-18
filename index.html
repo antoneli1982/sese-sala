@@ -333,11 +333,6 @@ textarea.fc{resize:vertical;min-height:72px}
   </div>
 </div>
 
-<!-- FAB - Botão flutuante sempre visível em qualquer aba -->
-<button class="fab" onclick="openAdd()" aria-label="Nova reunião">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  Agendar
-</button>
 <div id="toasts"></div>
 
 <script>
@@ -539,6 +534,7 @@ function renderAgenda(){
     const items=dayMtgs.map(m=>{
       const st=mSt(m);
       const can=m.status==='scheduled'&&['scheduled','now','soon'].includes(st);
+      const isDel=m.status==='cancelled';
       const cid=m._k||('l'+Date.now());
       const isDone=st==='done';
       return`<div class="mcard ${m.status==='cancelled'?'cancelled':''} ${isDone?'done-card':''}">
@@ -552,6 +548,7 @@ function renderAgenda(){
             ${bmap[st]||''}
           </div>
           ${can?`<div class="mact"><button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar reunião</button></div>`:''}
+          ${isDel?`<div class="mact"><button class="btn-cm" onclick="deleteMeet('${cid}','${m.title.replace(/'/g,"\\'")}')" style="background:var(--redl);color:var(--red)">${ico3}Excluir permanentemente</button></div>`:''}
         </div>
       </div>`;
     }).join('');
@@ -650,7 +647,19 @@ function doCancel(){
   closeOv('ov-conf');toast('Reunião cancelada','info');cancelTarget=null;
 }
 
-/* ── EDIT ROOM ── */
+function deleteMeet(key,title){
+  if(!confirm('Excluir "'+title+'" permanentemente?')) return;
+  // Remove do Firebase
+  if(db && !key.startsWith('l')){
+    db.ref(rpath+'/meetings/'+key).remove()
+      .catch(e=>toast('Erro ao excluir: '+e.message,'err'));
+  }
+  // Remove da memória e localStorage
+  meetings=meetings.filter(m=>m._k!==key);
+  saveLocal();
+  renderAgenda(); renderStatus();
+  toast('Reunião excluída','ok');
+}
 function fillEdit(){
   document.getElementById('en').value=room.name||'';
   document.getElementById('ecap').value=room.cap||'';
@@ -725,7 +734,7 @@ const FB_CONFIG = {
 /* CRÍTICO: expor todas as funções em window para onclick="" funcionar
    em qualquer WebView (iOS WKWebView, Android antigo, modo estrito etc.) */
 Object.assign(window,{
-  openAdd, saveMeet, openCancel, doCancel, closeOv, openSetup, connectFB,
+  openAdd, saveMeet, openCancel, doCancel, deleteMeet, closeOv, openSetup, connectFB,
   setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast
 });
 
