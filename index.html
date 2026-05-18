@@ -399,10 +399,10 @@ function writeRoom(){if(db)db.ref(rpath+'/room').set(room);else localStorage.set
 function openSetup(){document.getElementById('ov-setup').classList.add('open');}
 
 /* ── HELPERS ── */
-function today(){return new Date().toISOString().slice(0,10);}
+function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
 function toM(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
 function dur(s,e){const d=toM(e)-toM(s);if(d<=0)return'';const h=Math.floor(d/60),m=d%60;return h&&m?h+'h'+m+'min':h?h+'h':m+'min';}
-function fmtD(str){const t=today(),tm=new Date(Date.now()+86400000).toISOString().slice(0,10);if(str===t)return'Hoje';if(str===tm)return'Amanhã';return new Date(str+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'}).replace(/\./g,'').replace(/^\w/,c=>c.toUpperCase());}
+function fmtD(str){const t=today();const tm=new Date();tm.setDate(tm.getDate()+1);const tmStr=tm.getFullYear()+'-'+String(tm.getMonth()+1).padStart(2,'0')+'-'+String(tm.getDate()).padStart(2,'0');if(str===t)return'Hoje';if(str===tmStr)return'Amanhã';return new Date(str+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'}).replace(/\./g,'').replace(/^\w/,c=>c.toUpperCase());}
 function fmtL(str){return new Date(str+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});}
 function nowM(){const n=new Date();return n.getHours()*60+n.getMinutes();}
 function mSt(m){const t=today(),nm=nowM();if(m.status==='cancelled')return'cancelled';const s=toM(m.start),e=toM(m.end);if(m.date<t||(m.date===t&&e<=nm))return'done';if(m.date===t&&nm>=s&&nm<e)return'now';if(m.date===t&&nm>=s-15&&nm<s)return'soon';return'scheduled';}
@@ -501,7 +501,7 @@ function renderAgenda(){
 function openAdd(){
   ['mt','mr','mp','mn'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('md').value=today();
-  document.getElementById('md').min=today();
+  document.getElementById('md').removeAttribute('min');
   document.getElementById('ms').value='';
   document.getElementById('me').value='';
   document.getElementById('ov-meet').classList.add('open');
