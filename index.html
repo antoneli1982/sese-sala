@@ -122,6 +122,10 @@ header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:ce
 .wday-today .wday-name,.wday-today .wday-num{color:#fff}
 .wday-today .wday-dot{background:rgba(255,255,255,.8)}
 .wday-hasmtg:not(.wday-today) .wday-dot{background:var(--blue)}
+.wday-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;line-height:1}
+.wday-cnt-today{background:rgba(255,255,255,.85);color:var(--blue)}
+.day-count{margin-left:8px;padding:2px 8px;border-radius:10px;background:var(--lt);color:var(--blue);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0;vertical-align:middle}
+.done-card{opacity:.55}
 .day-empty{display:flex;align-items:center;gap:6px;padding:10px 4px;font-size:12px;color:var(--g3);font-style:italic}
 .day-empty svg{flex-shrink:0}
 /* qr */
@@ -450,50 +454,94 @@ function renderStatus(){
 }
 
 /* ── RENDER AGENDA ── */
-function buildWeekStrip(visible){
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function buildWeekStrip(allMeetings){
   const now=new Date(),dow=now.getDay();
   const mon=new Date(now);
   mon.setDate(now.getDate()-(dow===0?6:dow-1));
   mon.setHours(0,0,0,0);
   const weekDates=[];
-  for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);weekDates.push(d.toISOString().slice(0,10));}
+  for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);weekDates.push(localDateStr(d));}
   const todayStr=today();
   const abbr=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
   const strip=weekDates.map((date,i)=>{
-    const hasMtg=visible.some(m=>m.date===date);
+    const cnt=allMeetings.filter(m=>m.date===date&&m.status!=='cancelled').length;
     const isToday=date===todayStr;
     const num=new Date(date+'T00:00:00').getDate();
-    return`<div class="wday${isToday?' wday-today':''}${hasMtg?' wday-hasmtg':''}" onclick="scrollToDay('${date}')"><span class="wday-name">${abbr[i]}</span><span class="wday-num">${num}</span><span class="wday-dot${hasMtg?'':'-empty'}"></span></div>`;
+    return`<div class="wday${isToday?' wday-today':''}${cnt>0?' wday-hasmtg':''}" onclick="scrollToDay('${date}')">
+      <span class="wday-name">${abbr[i]}</span>
+      <span class="wday-num">${num}</span>
+      ${cnt>0?`<span class="wday-cnt${isToday?' wday-cnt-today':''}">${cnt}</span>`:'<span class="wday-dot-empty"></span>'}
+    </div>`;
   }).join('');
   return{strip:`<div class="week-cal">${strip}</div>`,weekDates};
 }
 function scrollToDay(date){const el=document.getElementById('day-'+date);if(el){const tab=document.getElementById('tab-agenda');tab.scrollTo({top:el.offsetTop-60,behavior:'smooth'});}}
 function renderAgenda(){
   const list=document.getElementById('aglist');
-  // Filter out already-done meetings
-  const visible=meetings.filter(m=>mSt(m)!=='done');
-  const{strip,weekDates}=buildWeekStrip(visible);
-  if(!visible.length){list.innerHTML=strip+'<div class="eag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Nenhuma reunião agendada.<br/>Toque em <strong>Agendar</strong> para criar.</p></div>';return;}
+  const{strip,weekDates}=buildWeekStrip(meetings);
+
+  // Mostra TODOS os agendamentos — esconde apenas dias anteriores à semana atual
+  const weekStart=weekDates[0];
+  // Inclui tudo a partir do início da semana atual
+  const visible=meetings.filter(m=>m.date>=weekStart);
+
+  if(!meetings.length){list.innerHTML=strip+'<div class="eag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Nenhuma reunião agendada.<br/>Toque em <strong>Agendar</strong> para criar.</p></div>';return;}
+
   const ico='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   const ico2='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   const ico3='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  // Group by date
+
+  // Agrupa por data
   const grp={};visible.forEach(m=>{if(!grp[m.date])grp[m.date]=[];grp[m.date].push(m);});
-  // All dates to show: this week (always) + future meetings outside this week
+
+  // Todos os dias a exibir: semana atual (sempre) + datas futuras com reuniões fora da semana
   const weekSet=new Set(weekDates);
   const extraDates=[...new Set(visible.filter(m=>!weekSet.has(m.date)).map(m=>m.date))];
   const allDates=[...weekDates,...extraDates].sort();
-  const bmap={now:'<span class="bdg b-now">Em andamento</span>',soon:'<span class="bdg b-soon">Em breve</span>',scheduled:'<span class="bdg b-ok">Agendada</span>',cancelled:'<span class="bdg b-can">Cancelada</span>'};
+
+  const bmap={
+    now:'<span class="bdg b-now">Em andamento</span>',
+    soon:'<span class="bdg b-soon">Em breve</span>',
+    scheduled:'<span class="bdg b-ok">Agendada</span>',
+    done:'<span class="bdg b-done">Concluída</span>',
+    cancelled:'<span class="bdg b-can">Cancelada</span>'
+  };
+
   const daysHtml=allDates.map(date=>{
-    const items=(grp[date]||[]).map(m=>{
+    const dayMtgs=grp[date]||[];
+    const items=dayMtgs.map(m=>{
       const st=mSt(m);
       const can=m.status==='scheduled'&&['scheduled','now','soon'].includes(st);
       const cid=m._k||('l'+Date.now());
-      return`<div class="mcard ${m.status==='cancelled'?'cancelled':''}"><div class="mbar"></div><div style="flex:1"><div class="mbod"><div class="mtim">${ico}${m.start} – ${m.end}${dur(m.start,m.end)?' · '+dur(m.start,m.end):''}</div><div class="mttl">${m.title}</div>${m.resp?`<div class="mwho">${ico2}${m.resp}${m.participants?' · '+m.participants:''}</div>`:''} ${m.notes?`<div class="mnot">${m.notes}</div>`:''} ${bmap[st]||''}</div>${can?`<div class="mact"><button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar reunião</button></div>`:''}</div></div>`;
+      const isDone=st==='done';
+      return`<div class="mcard ${m.status==='cancelled'?'cancelled':''} ${isDone?'done-card':''}">
+        <div class="mbar" style="${isDone?'background:var(--g3)':''}"></div>
+        <div style="flex:1">
+          <div class="mbod">
+            <div class="mtim" style="${isDone?'color:var(--g4)':''}">${ico}${m.start} – ${m.end}${dur(m.start,m.end)?' · '+dur(m.start,m.end):''}</div>
+            <div class="mttl" style="${isDone?'color:var(--g4)':''}">${m.title}</div>
+            ${m.resp?`<div class="mwho">${ico2}${m.resp}${m.participants?' · '+m.participants:''}</div>`:''}
+            ${m.notes?`<div class="mnot">${m.notes}</div>`:''}
+            ${bmap[st]||''}
+          </div>
+          ${can?`<div class="mact"><button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar reunião</button></div>`:''}
+        </div>
+      </div>`;
     }).join('');
-    const isEmpty=!grp[date]||grp[date].length===0;
-    return`<div class="dg" id="day-${date}"><div class="dgl">${fmtD(date)} — ${fmtL(date)}</div>${isEmpty?'<div class="day-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sem reuniões agendadas</div>':items}</div>`;
+
+    const total=dayMtgs.filter(m=>m.status!=='cancelled').length;
+    const headerBadge=total>0?`<span class="day-count">${total} reunião${total>1?'ões':''}</span>`:'';
+    const isEmpty=dayMtgs.length===0;
+
+    return`<div class="dg" id="day-${date}">
+      <div class="dgl">${fmtD(date)} — ${fmtL(date)}${headerBadge}</div>
+      ${isEmpty
+        ?'<div class="day-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sem reuniões</div>'
+        :items}
+    </div>`;
   }).join('');
+
   list.innerHTML=strip+daysHtml;
 }
 
