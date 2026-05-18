@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#1a1e38"/>
+<title>SESÉ – Sala de Reunião</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --blue:#5068F0;--dk:#3a50d4;--lt:#edf0fe;--glow:rgba(80,104,240,.18);
+  --navy:#1a1e38;--bg:#F4F6FB;--w:#fff;
+  --g1:#f4f6fb;--g2:#e0e3f0;--g3:#c8cce0;--g4:#9099be;--g6:#5a6180;--g7:#3d4466;--g9:#1a1e38;
+  --ok:#22b07a;--okl:#e6f7f0;
+  --red:#e04040;--redl:#fde9e9;
+  --warn:#e88c1a;--warnl:#fef4e2;
+  --r:14px;--rs:10px;--rl:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);display:flex;flex-direction:column}
+header{background:var(--navy);padding:14px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.logo{height:34px;display:block}
+.hdr{display:flex;align-items:center;gap:8px}
+.hdn{font-size:12px;font-weight:600;color:rgba(255,255,255,.82)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--g4);flex-shrink:0;transition:background .5s}
+.dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(34,176,122,.25)}
+.dot.wait{background:var(--warn);animation:bl 1.1s infinite}
+.dot.err{background:var(--red)}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{flex:1;overflow:hidden;background:var(--bg);border-radius:24px 24px 0 0;margin-top:2px;display:flex;flex-direction:column}
+.tab{display:none;flex:1;overflow-y:auto;padding-bottom:12px;-webkit-overflow-scrolling:touch}
+.tab.on{display:flex;flex-direction:column}
+.bnav{background:var(--navy);padding:6px 8px;display:flex;gap:2px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.08)}
+.nb{flex:1;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:10px;transition:background .2s}
+.nb svg{width:18px;height:18px;color:rgba(255,255,255,.32);transition:color .2s}
+.nb span{font-size:9px;font-weight:600;color:rgba(255,255,255,.32);letter-spacing:.2px;transition:color .2s}
+.nb.on svg,.nb.on span{color:var(--blue)}
+.nb:hover{background:rgba(255,255,255,.06)}
+/* clock */
+.cbar{background:var(--navy);padding:16px 22px 22px;display:flex;justify-content:space-between;align-items:flex-end}
+.ct{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:52px;color:#fff;line-height:1;letter-spacing:-1px}
+.cd{font-size:12px;color:rgba(255,255,255,.42);margin-bottom:5px}
+.csync{font-size:10px;color:rgba(255,255,255,.22);margin-top:3px;display:flex;align-items:center;gap:4px}
+.csync svg{width:10px;height:10px}
+/* status card */
+.sc{background:var(--w);border-radius:var(--rl) var(--rl) var(--r) var(--r);margin:0 14px;margin-top:-10px;box-shadow:0 4px 28px rgba(80,104,240,.14);border:1.5px solid var(--g2);padding:22px 22px 18px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--ok);transition:background .4s}
+.sc.busy::before{background:var(--red)} .sc.reserved::before{background:var(--warn)}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sc-name{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:28px;color:var(--g9);line-height:1}
+.sc-fl{font-size:12px;color:var(--g4);margin-top:4px;display:flex;align-items:center;gap:4px}
+.sc-fl svg{width:11px;height:11px}
+.pill{padding:8px 16px;border-radius:30px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pill .d{width:7px;height:7px;border-radius:50%}
+.p-ok{background:var(--okl);color:var(--ok)} .p-ok .d{background:var(--ok);animation:pok 2s infinite}
+.p-red{background:var(--redl);color:var(--red)} .p-red .d{background:var(--red);animation:pred 1.4s infinite}
+.p-warn{background:var(--warnl);color:var(--warn)} .p-warn .d{background:var(--warn)}
+@keyframes pok{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pred{0%,100%{box-shadow:0 0 0 0 rgba(224,64,64,.6)}70%{box-shadow:0 0 0 6px rgba(224,64,64,0)}}
+.scm{display:flex;gap:20px;margin-top:14px;padding-top:14px;border-top:1px solid var(--g1)}
+.si{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--g6)}
+.si svg{width:13px;height:13px;color:var(--blue)}
+.mic{margin:12px 14px 0;border-radius:var(--r);border:1.5px solid;padding:14px 16px}
+.mic-n{background:#fde9e9;border-color:#f5c0c0} .mic-x{background:var(--lt);border-color:#c4ccf8} .mic-e{background:var(--g1);border-color:var(--g2)}
+.ml{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px}
+.mic-n .ml{color:var(--red)} .mic-x .ml{color:var(--blue)} .mic-e .ml{color:var(--g4)}
+.mt2{font-size:15px;font-weight:700;color:var(--g9);line-height:1.2}
+.ms2{font-size:12px;color:var(--g4);margin-top:3px;display:flex;align-items:center;gap:5px}
+.ms2 svg{width:11px;height:11px}
+.qbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 14px 0}
+.qb{padding:10px 6px;border-radius:var(--rs);border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .2s}
+.qb svg{width:18px;height:18px}
+.qb-ok{background:var(--okl);color:var(--ok)} .qb-ok.on,.qb-ok:hover{background:var(--ok);color:#fff}
+.qb-red{background:var(--redl);color:var(--red)} .qb-red.on,.qb-red:hover{background:var(--red);color:#fff}
+.qb-warn{background:var(--warnl);color:var(--warn)} .qb-warn.on,.qb-warn:hover{background:var(--warn);color:#fff}
+/* agenda */
+.agh{background:var(--w);padding:18px 20px 14px;border-bottom:1px solid var(--g1);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.agt{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;color:var(--g9)}
+.btn-add{display:flex;align-items:center;gap:6px;padding:9px 16px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(80,104,240,.32);transition:all .2s}
+.btn-add:hover{background:var(--dk);transform:translateY(-1px)}
+.btn-add svg{width:14px;height:14px}
+.dg{padding:14px 16px 0}
+.dgl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--g4);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.dgl::after{content:'';flex:1;height:1px;background:var(--g2)}
+.mcard{background:var(--w);border-radius:var(--r);border:1.5px solid var(--g2);margin-bottom:8px;overflow:hidden;display:flex}
+.mcard.cancelled{opacity:.5}
+.mbar{width:4px;flex-shrink:0;background:var(--blue)}
+.mcard.cancelled .mbar{background:var(--g3)}
+.mbod{flex:1;padding:13px 14px;min-width:0}
+.mtim{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:3px;display:flex;align-items:center;gap:5px}
+.mtim svg{width:12px;height:12px}
+.mcard.cancelled .mtim{color:var(--g4)}
+.mttl{font-size:15px;font-weight:700;color:var(--g9);line-height:1.2}
+.mwho{font-size:12px;color:var(--g4);margin-top:2px;display:flex;align-items:center;gap:4px}
+.mwho svg{width:11px;height:11px}
+.mnot{font-size:11px;color:var(--g6);margin-top:6px;font-style:italic}
+.bdg{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:10px;display:inline-block;margin-top:6px}
+.b-ok{background:var(--lt);color:var(--blue)} .b-can{background:var(--g1);color:var(--g4)} .b-done{background:var(--okl);color:var(--ok)} .b-now{background:var(--redl);color:var(--red)} .b-soon{background:var(--warnl);color:var(--warn)}
+.mact{padding:8px 14px 12px}
+.btn-cm{padding:7px 14px;border-radius:8px;border:none;background:var(--redl);color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .2s}
+.btn-cm:hover{background:var(--red);color:#fff}
+.btn-cm svg{width:12px;height:12px}
+.eag{text-align:center;padding:52px 24px}
+.eag svg{width:44px;height:44px;margin:0 auto 12px;display:block;color:var(--g3)}
+.eag p{font-size:14px;color:var(--g4)}
+/* weekly calendar strip */
+.week-cal{display:flex;gap:4px;padding:12px 14px 10px;background:var(--w);border-bottom:1px solid var(--g1);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0}
+.week-cal::-webkit-scrollbar{display:none}
+.wday{flex:1;min-width:40px;max-width:52px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:12px;cursor:pointer;transition:background .2s}
+.wday:hover{background:var(--g1)}
+.wday-name{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--g4)}
+.wday-num{font-size:18px;font-weight:700;color:var(--g7);line-height:1}
+.wday-dot{width:5px;height:5px;border-radius:50%;background:var(--blue)}
+.wday-dot-empty{width:5px;height:5px;border-radius:50%;background:transparent}
+.wday-today{background:var(--blue)}
+.wday-today:hover{background:var(--dk)}
+.wday-today .wday-name,.wday-today .wday-num{color:#fff}
+.wday-today .wday-dot{background:rgba(255,255,255,.8)}
+.wday-hasmtg:not(.wday-today) .wday-dot{background:var(--blue)}
+.wday-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;line-height:1}
+.wday-cnt-today{background:rgba(255,255,255,.85);color:var(--blue)}
+.day-count{margin-left:8px;padding:2px 8px;border-radius:10px;background:var(--lt);color:var(--blue);font-size:10px;font-weight:700;text-transform:none;letter-spacing:0;vertical-align:middle}
+.done-card{opacity:.55}
+.day-empty{display:flex;align-items:center;gap:6px;padding:10px 4px;font-size:12px;color:var(--g3);font-style:italic}
+.day-empty svg{flex-shrink:0}
+/* qr */
+.qrpg{display:flex;flex-direction:column;align-items:center;padding:28px 20px 24px;flex:1}
+.qrbx{background:var(--w);border-radius:var(--rl);padding:28px;box-shadow:0 8px 40px rgba(80,104,240,.14);border:1.5px solid var(--g2);display:flex;flex-direction:column;align-items:center;width:100%;max-width:320px}
+.qrbx img{width:200px;height:200px;border-radius:10px;display:block;background:var(--g1)}
+.qrn{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:24px;color:var(--g9);margin-top:16px;text-align:center}
+.qrf{font-size:12px;color:var(--g4);text-align:center;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:4px}
+.qrf svg{width:11px;height:11px}
+.qrd{width:100%;height:1px;background:var(--g2);margin:16px 0}
+.qrh{font-size:12px;color:var(--g4);text-align:center;line-height:1.6}
+.qra{display:flex;gap:10px;margin-top:20px;width:100%;max-width:320px}
+.bqr{flex:1;padding:12px;border-radius:var(--rs);border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.bqr svg{width:15px;height:15px}
+.bqp{background:var(--lt);color:var(--blue)} .bqp:hover{background:var(--blue);color:#fff}
+.bqc{background:var(--g1);color:var(--g7)} .bqc:hover{background:var(--g3);color:var(--g9)}
+/* edit */
+.ef{padding:20px 16px 32px}
+.sec{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:20px;color:var(--g9);margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid var(--g2)}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.fl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g6)}
+.fc{padding:11px 14px;border:1.5px solid var(--g2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--g9);background:var(--w);outline:none;width:100%;transition:border-color .2s,box-shadow .2s}
+.fc:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--glow)}
+textarea.fc{resize:vertical;min-height:72px}
+.fr{display:flex;gap:10px} .fr .fg{flex:1}
+.rcs{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.rc{padding:6px 12px;border:1.5px solid var(--g2);border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--g6);transition:all .18s;user-select:none}
+.rc input{display:none}
+.rc.on{border-color:var(--blue);background:var(--lt);color:var(--blue)}
+.bsv{width:100%;padding:13px;border-radius:var(--rs);border:none;background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;box-shadow:0 4px 16px rgba(80,104,240,.30);transition:all .2s}
+.bsv:hover{background:var(--dk);transform:translateY(-1px)}
+.brc{width:100%;padding:11px;border-radius:var(--rs);border:1.5px solid var(--g2);background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--g6);cursor:pointer;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.brc:hover{background:var(--g1)}
+.brc svg{width:14px;height:14px}
+/* overlays */
+.ov{position:fixed;inset:0;background:rgba(26,30,56,.6);backdrop-filter:blur(6px);z-index:999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.ov.open{opacity:1;pointer-events:all}
+.sheet{background:var(--w);border-radius:24px 24px 0 0;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(80,104,240,.18);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.ov.open .sheet{transform:translateY(0)}
+.sbar{width:40px;height:4px;background:var(--g2);border-radius:2px;margin:12px auto 0}
+.mhd{padding:16px 22px 0;display:flex;align-items:center;justify-content:space-between}
+.mtit{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;color:var(--g9)}
+.bx{width:32px;height:32px;border-radius:8px;border:none;background:var(--g1);color:var(--g4);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.bx:hover{background:var(--g2);color:var(--g9)}
+.mbdy{padding:18px 22px}
+.mft{padding:0 22px 28px;display:flex;gap:8px}
+.bmn{flex:1;padding:12px;border-radius:var(--rs);border:1.5px solid var(--g2);background:transparent;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--g6);cursor:pointer}
+.bms{flex:2;padding:12px;border-radius:var(--rs);border:none;background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(80,104,240,.30);transition:background .2s}
+.bms:hover{background:var(--dk)}
+/* center modals */
+.ovc{position:fixed;inset:0;background:rgba(26,30,56,.65);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.ovc.open{opacity:1;pointer-events:all}
+.cbox{background:var(--w);border-radius:var(--rl);padding:32px 28px;width:100%;max-width:380px;text-align:center;box-shadow:0 12px 48px rgba(80,104,240,.22);transform:scale(.92);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1)}
+.ovc.open .cbox{transform:scale(1);opacity:1}
+.ci{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.ci-r{background:var(--redl)} .ci-r svg{width:24px;height:24px;color:var(--red)}
+.ci-f{background:#fff3e0}
+.cttl{font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:22px;color:var(--g9);margin-bottom:6px}
+.cmsg{font-size:13px;color:var(--g4);margin-bottom:22px;line-height:1.5}
+.cbtns{display:flex;gap:8px}
+.cbn{flex:1;padding:11px;border-radius:var(--rs);border:1.5px solid var(--g2);background:transparent;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;color:var(--g6);cursor:pointer}
+.cby{flex:1;padding:11px;border-radius:var(--rs);border:none;background:var(--red);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:background .2s}
+.cby:hover{background:#c43535}
+/* setup box */
+.setup{max-width:460px;text-align:left;padding:32px 28px;max-height:95vh;overflow-y:auto}
+.setup .cttl,.setup .cmsg{text-align:center}
+.setup .cmsg{margin-bottom:18px}
+.hint{font-size:11px;color:var(--g4);margin-top:4px;line-height:1.4}
+.hint a{color:var(--blue);font-weight:600;text-decoration:none}
+.bconn{width:100%;padding:13px;border-radius:var(--rs);border:none;background:var(--blue);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;box-shadow:0 4px 16px rgba(80,104,240,.30);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.bconn:hover{background:var(--dk);transform:translateY(-1px)}
+.bconn svg{width:16px;height:16px}
+.rtip{font-size:11px;color:var(--g4);margin-top:14px;text-align:center;line-height:1.6;background:var(--g1);border-radius:var(--rs);padding:10px 14px}
+.rtip code{font-size:10px;color:var(--g7);background:var(--g2);padding:1px 4px;border-radius:3px}
+/* toasts */
+#toasts{position:fixed;bottom:20px;right:14px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--navy);color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.22);animation:tin .3s ease,tout .4s ease 2.6s forwards;max-width:280px}
+.toast svg{width:14px;height:14px;flex-shrink:0}
+.toast.ok{border-left:3px solid var(--ok)} .toast.info{border-left:3px solid var(--blue)} .toast.err{border-left:3px solid var(--red)}
+@keyframes tin{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes tout{from{opacity:1}to{opacity:0;transform:translateX(24px)}}
+@media print{body *{visibility:hidden}#parea,#parea *{visibility:visible}#parea{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;gap:16px;padding:40px}}
+</style>
+</head>
+<body>
+<header>
+  <img src="data:image/png;base64,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" alt="SESÉ" style="height:36px;display:block;object-fit:contain"/>
+  <div class="hdr">
+    <div class="dot wait" id="cdot" title="Conectando…"></div>
+    <span class="hdn" id="hdn">Sala Conecta</span>
+  </div>
+</header>
+<nav class="bnav">
+  <button class="nb on" id="nb-status" onclick="goTab('status')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Status</span></button>
+  <button class="nb" id="nb-agenda" onclick="goTab('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span></button>
+  <button class="nb" id="nb-qr" onclick="goTab('qr')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="5" y="5" width="3" height="3"/><rect x="16" y="5" width="3" height="3"/><rect x="5" y="16" width="3" height="3"/><path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/></svg><span>QR Code</span></button>
+  <button class="nb" id="nb-edit" onclick="goTab('edit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Editar</span></button>
+</nav>
+
+<div class="tabs">
+  <!-- STATUS -->
+  <div class="tab on" id="tab-status">
+    <div class="cbar">
+      <div>
+        <div class="cd" id="clk-d">—</div>
+        <div class="ct" id="clk-t">--:--</div>
+        <div class="csync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.73-7.22"/></svg><span id="synctxt">Aguardando Firebase…</span></div>
+      </div>
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <div class="sc" id="scard">
+      <div class="sc-top">
+        <div>
+          <div class="sc-name" id="scn">—</div>
+          <div class="sc-fl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="scf">—</span></div>
+        </div>
+        <div class="pill p-ok" id="spill"><span class="d"></span><span id="slbl">Disponível</span></div>
+      </div>
+      <div class="scm">
+        <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span id="scap">—</span></div>
+        <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span id="sresp">—</span></div>
+      </div>
+    </div>
+    <div id="mnow"></div>
+    <div id="mnxt"></div>
+    <div style="padding:4px 14px 0">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--g4);margin-bottom:8px">Definir status</div>
+      <div class="qbtns">
+        <button class="qb qb-ok"   id="qbok"  onclick="setStatus('free')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Disponível</button>
+        <button class="qb qb-red"  id="qbred" onclick="setStatus('busy')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Ocupada</button>
+        <button class="qb qb-warn" id="qbwrn" onclick="setStatus('reserved')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Reservada</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENDA -->
+  <div class="tab" id="tab-agenda">
+    <div class="agh"><div class="agt">Agenda de Reuniões</div><button class="btn-add" onclick="openAdd()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Agendar</button></div>
+    <div id="aglist"></div>
+  </div>
+
+  <!-- QR -->
+  <div class="tab" id="tab-qr">
+    <div class="qrpg">
+      <div class="qrbx">
+        <svg viewBox="0 0 160 36" width="120" height="27" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="sp2" patternUnits="userSpaceOnUse" width="160" height="9"><rect width="160" height="6" fill="#5068F0"/></pattern><clipPath id="sc2"><text x="3" y="33" font-family="'Barlow Condensed',sans-serif" font-style="italic" font-weight="800" font-size="40" letter-spacing="1">SESÉ</text></clipPath></defs><rect width="160" height="36" fill="url(#sp2)" clip-path="url(#sc2)"/></svg>
+        <div style="margin-top:20px"><img id="qrimg" src="" alt="QR Code" style="width:200px;height:200px;border-radius:10px;background:var(--g1)"/></div>
+        <div class="qrn" id="qrn">—</div>
+        <div class="qrf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span id="qrf">—</span></div>
+        <div class="qrd"></div>
+        <div class="qrh">📱 Escaneie para acessar a agenda<br/>e o status desta sala em tempo real</div>
+      </div>
+      <div class="qra">
+        <button class="bqr bqp" onclick="printQR()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir</button>
+        <button class="bqr bqc" onclick="copyLink()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Copiar link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDITAR -->
+  <div class="tab" id="tab-edit">
+    <div class="ef">
+      <div class="sec">Informações da Sala</div>
+      <div class="fr"><div class="fg"><label class="fl">Nome *</label><input class="fc" id="en" type="text" placeholder="Sala Conecta"/></div><div class="fg" style="max-width:100px"><label class="fl">Capacidade *</label><input class="fc" id="ecap" type="number" min="1" placeholder="12"/></div></div>
+      <div class="fr"><div class="fg"><label class="fl">Andar</label><select class="fc" id="efl"><option>Térreo</option><option>1º Andar</option><option>2º Andar</option><option>3º Andar</option></select></div><div class="fg"><label class="fl">Responsável</label><input class="fc" id="eresp" type="text" placeholder="Nome"/></div></div>
+      <div class="fg"><label class="fl">Recursos</label><div class="rcs" id="eres"></div></div>
+      <div class="fg"><label class="fl">Observações</label><textarea class="fc" id="edesc" placeholder="Informações adicionais…"></textarea></div>
+      <div class="sec" style="margin-top:20px">Link do App (QR Code)</div>
+      <div class="fg"><label class="fl">URL base</label><input class="fc" id="eurl" type="url" placeholder="https://usuario.github.io/sala"/><div style="font-size:11px;color:var(--g4);margin-top:4px">URL codificada no QR Code da sala</div></div>
+      <button class="bsv" onclick="saveRoom()">Salvar alterações</button>
+      <button class="brc" onclick="openSetup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Reconfigurar Firebase</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SETUP FIREBASE -->
+<div class="ovc" id="ov-setup">
+  <div class="cbox setup">
+    <div class="ci ci-f" style="margin:0 auto 16px">
+      <svg viewBox="0 0 40 40" fill="none" width="40" height="40"><path d="M20 36C20 36 8 28 8 18C8 12.5 13.5 8 20 8C26.5 8 32 12.5 32 18C32 28 20 36 20 36Z" fill="#FFA000"/><path d="M20 30C20 30 12 25 12 18C12 14.7 15.2 12 20 12C24.8 12 28 14.7 28 18C28 25 20 30 20 30Z" fill="#FF6D00"/><circle cx="20" cy="19" r="4" fill="#FFCA28"/></svg>
+    </div>
+    <div class="cttl">Conectar ao Firebase</div>
+    <div class="cmsg">Configure uma vez — todos os celulares e computadores ficam sincronizados em tempo real.</div>
+    <div class="fg"><label class="fl">API Key *</label><input class="fc" id="skey" type="text" placeholder="AIzaSy…"/></div>
+    <div class="fg"><label class="fl">Database URL *</label><input class="fc" id="surl" type="url" value="https://sala-conecta-default-rtdb.firebaseio.com"/><div class="hint">Já preenchido com seu projeto <strong>sala-conecta</strong> ✓</div></div>
+    <div class="fg"><label class="fl">Project ID *</label><input class="fc" id="spid" type="text" value="sala-conecta"/></div>
+    <div class="fg"><label class="fl">ID da Sala</label><input class="fc" id="srid" type="text" value="sala-1" placeholder="sala-1"/><div class="hint">Permite múltiplas salas no mesmo banco</div></div>
+    <button class="bconn" onclick="connectFB()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Conectar e Sincronizar</button>
+
+  </div>
+</div>
+
+<!-- AGENDAR -->
+<div class="ov" id="ov-meet" onclick="if(event.target===this)closeOv('ov-meet')">
+  <div class="sheet">
+    <div class="sbar"></div>
+    <div class="mhd"><span class="mtit">Nova Reunião</span><button class="bx" onclick="closeOv('ov-meet')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="mbdy">
+      <div class="fg"><label class="fl">Título *</label><input class="fc" id="mt" type="text" placeholder="Ex: Reunião de Planejamento"/></div>
+      <div class="fg"><label class="fl">Data *</label><input class="fc" id="md" type="date"/></div>
+      <div class="fr"><div class="fg"><label class="fl">Início *</label><input class="fc" id="ms" type="time"/></div><div class="fg"><label class="fl">Término *</label><input class="fc" id="me" type="time"/></div></div>
+      <div class="fg"><label class="fl">Responsável</label><input class="fc" id="mr" type="text" placeholder="Nome"/></div>
+      <div class="fg"><label class="fl">Participantes</label><input class="fc" id="mp" type="text" placeholder="Equipe, RH…"/></div>
+      <div class="fg"><label class="fl">Observações</label><textarea class="fc" id="mn" placeholder="Pauta, link de meet…" style="min-height:60px"></textarea></div>
+    </div>
+    <div class="mft"><button class="bmn" onclick="closeOv('ov-meet')">Cancelar</button><button class="bms" onclick="saveMeet()">Confirmar Agendamento</button></div>
+  </div>
+</div>
+
+<!-- CONFIRMAR CANCELAMENTO -->
+<div class="ovc" id="ov-conf">
+  <div class="cbox">
+    <div class="ci ci-r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+    <div class="cttl">Cancelar reunião?</div>
+    <div class="cmsg" id="confmsg">A reunião será cancelada em todos os dispositivos.</div>
+    <div class="cbtns"><button class="cbn" onclick="closeOv('ov-conf')">Não</button><button class="cby" onclick="doCancel()">Sim, cancelar</button></div>
+  </div>
+</div>
+
+<!-- PRINT -->
+<div id="parea" style="display:none;flex-direction:column;align-items:center;gap:16px">
+  <svg viewBox="0 0 200 46" width="180" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="sp3" patternUnits="userSpaceOnUse" width="200" height="11"><rect width="200" height="7.5" fill="#5068F0"/></pattern><clipPath id="sc3"><text x="4" y="42" font-family="'Barlow Condensed',sans-serif" font-style="italic" font-weight="800" font-size="50" letter-spacing="1">SESÉ</text></clipPath></defs><rect width="200" height="46" fill="url(#sp3)" clip-path="url(#sc3)"/></svg>
+  <img id="pqr" src="" style="width:240px;height:240px;border-radius:12px"/>
+  <div style="font-family:'Barlow Condensed',sans-serif;font-style:italic;font-size:28px;color:#1a1e38;text-align:center" id="pn">—</div>
+  <div style="font-size:13px;color:#9099be;text-align:center" id="pf">—</div>
+  <div style="font-size:12px;color:#c8cce0;text-align:center">📱 Escaneie para ver agenda e status em tempo real</div>
+</div>
+<div id="toasts"></div>
+
+<script>
+const RES=['Projetor','TV/Monitor','Videoconferência','Quadro Branco','Wi-Fi','Ar-condicionado','Café/Água','Acessibilidade'];
+let room={name:'Sala Conecta',cap:12,floor:'1º Andar',resp:'Responsável',resources:['Projetor','Wi-Fi'],desc:'',appUrl:location.href.split('?')[0],manualStatus:null};
+let meetings=[],cancelTarget=null,db=null,rpath='sala-1';
+
+/* ── FIREBASE ── */
+function connectFB(){
+  const key=document.getElementById('skey').value.trim();
+  const url=document.getElementById('surl').value.trim();
+  const pid=document.getElementById('spid').value.trim();
+  const rid=(document.getElementById('srid').value.trim()||'sala-1').replace(/[^a-z0-9-]/g,'');
+  if(!key||!url||!pid){toast('Preencha todos os campos obrigatórios','err');return;}
+  try{
+    try{firebase.app();}catch{firebase.initializeApp({apiKey:key,databaseURL:url,projectId:pid});}
+    db=firebase.database(); rpath=rid;
+    localStorage.setItem('sese_fb',JSON.stringify({key,url,pid,rid}));
+    closeOv('ov-setup');
+    toast('Firebase conectado! Sincronizando…','ok');
+    startListeners(); monitorConn();
+  }catch(e){toast('Erro: '+e.message,'err');}
+}
+function startListeners(){
+  db.ref(rpath+'/room').on('value',snap=>{
+    const d=snap.val();
+    if(d){room={...room,...d};renderStatus();}
+    else db.ref(rpath+'/room').set(room);
+  });
+  db.ref(rpath+'/meetings').on('value',snap=>{
+    meetings=[];
+    snap.forEach(c=>meetings.push({...c.val(),_k:c.key}));
+    meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
+    renderAgenda(); renderStatus();
+  });
+}
+function monitorConn(){
+  db.ref('.info/connected').on('value',snap=>{
+    const ok=snap.val()===true;
+    const d=document.getElementById('cdot');
+    d.className='dot '+(ok?'ok':'wait');
+    d.title=ok?'Conectado — sincronizando em tempo real':'Reconectando…';
+    document.getElementById('synctxt').textContent=ok?'🟢 Todos os dispositivos sincronizados':'🟡 Reconectando…';
+  });
+}
+function writeRoom(){if(db)db.ref(rpath+'/room').set(room);else localStorage.setItem('sese_r',JSON.stringify(room));}
+function openSetup(){document.getElementById('ov-setup').classList.add('open');}
+
+/* ── HELPERS ── */
+function today(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function toM(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function dur(s,e){const d=toM(e)-toM(s);if(d<=0)return'';const h=Math.floor(d/60),m=d%60;return h&&m?h+'h'+m+'min':h?h+'h':m+'min';}
+function fmtD(str){const t=today();const tm=new Date();tm.setDate(tm.getDate()+1);const tmStr=tm.getFullYear()+'-'+String(tm.getMonth()+1).padStart(2,'0')+'-'+String(tm.getDate()).padStart(2,'0');if(str===t)return'Hoje';if(str===tmStr)return'Amanhã';return new Date(str+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'}).replace(/\./g,'').replace(/^\w/,c=>c.toUpperCase());}
+function fmtL(str){return new Date(str+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});}
+function nowM(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+function mSt(m){const t=today(),nm=nowM();if(m.status==='cancelled')return'cancelled';const s=toM(m.start),e=toM(m.end);if(m.date<t||(m.date===t&&e<=nm))return'done';if(m.date===t&&nm>=s&&nm<e)return'now';if(m.date===t&&nm>=s-15&&nm<s)return'soon';return'scheduled';}
+
+/* ── STATUS LOGIC ── */
+function autoS(){
+  const t=today(),nm=nowM(),act=meetings.filter(m=>m.status==='scheduled'&&m.date===t);
+  for(const m of act){const s=toM(m.start),e=toM(m.end);if(nm>=s&&nm<e)return{s:'busy',m};}
+  for(const m of act){const s=toM(m.start);if(nm>=s-15&&nm<s)return{s:'reserved',m};}
+  return{s:'free',m:null};
+}
+function effS(){if(room.manualStatus)return{s:room.manualStatus,m:null};return autoS();}
+function nextM(){const t=today(),nm=nowM();return meetings.filter(m=>m.status==='scheduled'&&(m.date>t||(m.date===t&&toM(m.start)>nm))).sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start))[0]||null;}
+
+function setStatus(s){
+  room.manualStatus=(room.manualStatus===s)?null:s;
+  writeRoom(); renderStatus();
+  toast(room.manualStatus?'Status: '+{free:'Disponível',busy:'Ocupada',reserved:'Reservada'}[s]:'Status automático ativado','info');
+}
+
+/* ── RENDER STATUS ── */
+function renderStatus(){
+  const{s}=effS();
+  document.getElementById('scard').className='sc '+(s==='busy'?'busy':s==='reserved'?'reserved':'');
+  const pill=document.getElementById('spill');
+  pill.className='pill '+{free:'p-ok',busy:'p-red',reserved:'p-warn'}[s];
+  document.getElementById('slbl').textContent={free:'Disponível',busy:'Ocupada',reserved:'Reservada'}[s];
+  document.getElementById('scn').textContent=room.name||'—';
+  document.getElementById('scf').textContent=room.floor||'—';
+  document.getElementById('scap').textContent=(room.cap||'—')+' pessoa'+((room.cap||0)!==1?'s':'');
+  document.getElementById('sresp').textContent=room.resp||'—';
+  document.getElementById('hdn').textContent=room.name||'—';
+  ['qbok','qbred','qbwrn'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(room.manualStatus){const m={free:'qbok',busy:'qbred',reserved:'qbwrn'}[room.manualStatus];if(m)document.getElementById(m).classList.add('on');}
+  const auto=autoS();
+  const icoClock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  const nowEl=document.getElementById('mnow');
+  if(auto.s==='busy'&&auto.m){const r=auto.m;nowEl.innerHTML=`<div class="mic mic-n"><div class="ml">🔴 Em andamento</div><div class="mt2">${r.title}</div><div class="ms2">${icoClock}${r.start} – ${r.end} (${dur(r.start,r.end)}) ${r.resp?'· '+r.resp:''}</div></div>`;}
+  else if(auto.s==='reserved'&&auto.m){const r=auto.m,mins=toM(r.start)-nowM();nowEl.innerHTML=`<div class="mic mic-x"><div class="ml">🟡 Começa em ${mins} min</div><div class="mt2">${r.title}</div><div class="ms2">${icoClock}${r.start} – ${r.end} · ${r.resp||''}</div></div>`;}
+  else nowEl.innerHTML='';
+  const nxt=nextM();const nxtEl=document.getElementById('mnxt');
+  if(nxt&&auto.m?.title!==nxt.title){nxtEl.innerHTML=`<div class="mic mic-x"><div class="ml">📅 Próxima — ${fmtD(nxt.date)}</div><div class="mt2">${nxt.title}</div><div class="ms2">${icoClock}${nxt.start} – ${nxt.end} (${dur(nxt.start,nxt.end)}) ${nxt.resp?'· '+nxt.resp:''}</div></div>`;}
+  else if(!nxt){nxtEl.innerHTML=`<div class="mic mic-e"><div class="ml">Próximas reuniões</div><div class="mt2" style="font-size:14px;font-weight:500;color:var(--g4)">Nenhuma reunião agendada</div></div>`;}
+  else nxtEl.innerHTML='';
+}
+
+/* ── RENDER AGENDA ── */
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function buildWeekStrip(allMeetings){
+  const now=new Date(),dow=now.getDay();
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  mon.setHours(0,0,0,0);
+  const weekDates=[];
+  for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);weekDates.push(localDateStr(d));}
+  const todayStr=today();
+  const abbr=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const strip=weekDates.map((date,i)=>{
+    const cnt=allMeetings.filter(m=>m.date===date&&m.status!=='cancelled').length;
+    const isToday=date===todayStr;
+    const num=new Date(date+'T00:00:00').getDate();
+    return`<div class="wday${isToday?' wday-today':''}${cnt>0?' wday-hasmtg':''}" onclick="scrollToDay('${date}')">
+      <span class="wday-name">${abbr[i]}</span>
+      <span class="wday-num">${num}</span>
+      ${cnt>0?`<span class="wday-cnt${isToday?' wday-cnt-today':''}">${cnt}</span>`:'<span class="wday-dot-empty"></span>'}
+    </div>`;
+  }).join('');
+  return{strip:`<div class="week-cal">${strip}</div>`,weekDates};
+}
+function scrollToDay(date){const el=document.getElementById('day-'+date);if(el){const tab=document.getElementById('tab-agenda');tab.scrollTo({top:el.offsetTop-60,behavior:'smooth'});}}
+function renderAgenda(){
+  const list=document.getElementById('aglist');
+  const{strip,weekDates}=buildWeekStrip(meetings);
+
+  if(!meetings.length){list.innerHTML=strip+'<div class="eag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>Nenhuma reunião agendada.<br/>Toque em <strong>Agendar</strong> para criar.</p></div>';return;}
+
+  const ico='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  const ico2='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  const ico3='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+
+  // SEM FILTRO — agrupa TODAS as reuniões do Firebase por data
+  const grp={};meetings.forEach(m=>{if(!grp[m.date])grp[m.date]=[];grp[m.date].push(m);});
+
+  // Exibe: semana atual completa + qualquer data com reunião
+  const weekSet=new Set(weekDates);
+  const allDatesSet=new Set([...weekDates,...Object.keys(grp)]);
+  const allDates=[...allDatesSet].sort();
+
+  const bmap={
+    now:'<span class="bdg b-now">Em andamento</span>',
+    soon:'<span class="bdg b-soon">Em breve</span>',
+    scheduled:'<span class="bdg b-ok">Agendada</span>',
+    done:'<span class="bdg b-done">Concluída</span>',
+    cancelled:'<span class="bdg b-can">Cancelada</span>'
+  };
+
+  const daysHtml=allDates.map(date=>{
+    const dayMtgs=grp[date]||[];
+    const items=dayMtgs.map(m=>{
+      const st=mSt(m);
+      const can=m.status==='scheduled'&&['scheduled','now','soon'].includes(st);
+      const cid=m._k||('l'+Date.now());
+      const isDone=st==='done';
+      return`<div class="mcard ${m.status==='cancelled'?'cancelled':''} ${isDone?'done-card':''}">
+        <div class="mbar" style="${isDone?'background:var(--g3)':''}"></div>
+        <div style="flex:1">
+          <div class="mbod">
+            <div class="mtim" style="${isDone?'color:var(--g4)':''}">${ico}${m.start} – ${m.end}${dur(m.start,m.end)?' · '+dur(m.start,m.end):''}</div>
+            <div class="mttl" style="${isDone?'color:var(--g4)':''}">${m.title}</div>
+            ${m.resp?`<div class="mwho">${ico2}${m.resp}${m.participants?' · '+m.participants:''}</div>`:''}
+            ${m.notes?`<div class="mnot">${m.notes}</div>`:''}
+            ${bmap[st]||''}
+          </div>
+          ${can?`<div class="mact"><button class="btn-cm" onclick="openCancel('${cid}','${m.title.replace(/'/g,"\\'")}')">${ico3}Cancelar reunião</button></div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+    const total=dayMtgs.filter(m=>m.status!=='cancelled').length;
+    const headerBadge=total>0?`<span class="day-count">${total} reunião${total>1?'ões':''}</span>`:'';
+    const isEmpty=dayMtgs.length===0;
+
+    return`<div class="dg" id="day-${date}">
+      <div class="dgl">${fmtD(date)} — ${fmtL(date)}${headerBadge}</div>
+      ${isEmpty
+        ?'<div class="day-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Sem reuniões</div>'
+        :items}
+    </div>`;
+  }).join('');
+
+  list.innerHTML=strip+daysHtml;
+}
+
+/* ── MEETING CRUD ── */
+function openAdd(){
+  ['mt','mr','mp','mn'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('md').value=today();
+  document.getElementById('md').removeAttribute('min');
+  document.getElementById('ms').value='';
+  document.getElementById('me').value='';
+  document.getElementById('ov-meet').classList.add('open');
+}
+function saveMeet(){
+  const title=document.getElementById('mt').value.trim(),date=document.getElementById('md').value,start=document.getElementById('ms').value,end=document.getElementById('me').value;
+  if(!title){toast('Informe o título','err');return;}
+  if(!date){toast('Informe a data','err');return;}
+  if(!start||!end){toast('Informe horário de início e término','err');return;}
+  if(toM(end)<=toM(start)){toast('O término deve ser após o início','err');return;}
+  const conflict=meetings.find(m=>m.status==='scheduled'&&m.date===date&&toM(start)<toM(m.end)&&toM(end)>toM(m.start));
+  if(conflict){toast(`Conflito com "${conflict.title}" (${conflict.start}–${conflict.end})`,'err');return;}
+  const data={title,date,start,end,resp:document.getElementById('mr').value.trim(),participants:document.getElementById('mp').value.trim(),notes:document.getElementById('mn').value.trim(),status:'scheduled'};
+  if(db){db.ref(rpath+'/meetings').push(data);}
+  else{meetings.push({...data,_k:'l'+Date.now()});renderAgenda();renderStatus();}
+  closeOv('ov-meet');
+  toast('Reunião agendada: '+title,'ok');
+}
+function openCancel(key,title){
+  cancelTarget=key;
+  document.getElementById('confmsg').textContent='Cancelar "'+title+'"? Todos os dispositivos serão atualizados.';
+  document.getElementById('ov-conf').classList.add('open');
+}
+function doCancel(){
+  if(db&&cancelTarget){db.ref(rpath+'/meetings/'+cancelTarget).update({status:'cancelled'});}
+  else{const m=meetings.find(m=>m._k===cancelTarget);if(m)m.status='cancelled';renderAgenda();renderStatus();}
+  closeOv('ov-conf');toast('Reunião cancelada','info');cancelTarget=null;
+}
+
+/* ── EDIT ROOM ── */
+function fillEdit(){
+  document.getElementById('en').value=room.name||'';
+  document.getElementById('ecap').value=room.cap||'';
+  document.getElementById('efl').value=room.floor||'1º Andar';
+  document.getElementById('eresp').value=room.resp||'';
+  document.getElementById('edesc').value=room.desc||'';
+  document.getElementById('eurl').value=room.appUrl||'';
+  const rc=document.getElementById('eres');
+  rc.innerHTML=RES.map(r=>{const on=(room.resources||[]).includes(r);return`<label class="rc ${on?'on':''}"><input type="checkbox" value="${r}" ${on?'checked':''} onchange="this.closest('label').classList.toggle('on',this.checked)">${r}</label>`;}).join('');
+}
+function saveRoom(){
+  const name=document.getElementById('en').value.trim(),cap=parseInt(document.getElementById('ecap').value);
+  if(!name){toast('Informe o nome da sala','err');return;}
+  if(!cap||cap<1){toast('Informe a capacidade','err');return;}
+  room.name=name;room.cap=cap;room.floor=document.getElementById('efl').value;room.resp=document.getElementById('eresp').value.trim();room.desc=document.getElementById('edesc').value.trim();room.appUrl=document.getElementById('eurl').value.trim()||location.href.split('?')[0];room.resources=[...document.querySelectorAll('#eres input:checked')].map(i=>i.value);
+  writeRoom();renderStatus();updateQR();
+  toast('Sala atualizada em todos os dispositivos!','ok');
+}
+
+/* ── QR ── */
+function updateQR(){
+  const base=room.appUrl||location.href.split('?')[0];
+  const data=encodeURIComponent(base+'?sala='+encodeURIComponent(room.name));
+  const src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data}&bgcolor=ffffff&color=1a1e38&margin=1&qzone=1`;
+  document.getElementById('qrimg').src=src;
+  document.getElementById('qrn').textContent=room.name||'—';
+  document.getElementById('qrf').textContent=room.floor||'—';
+  document.getElementById('pn').textContent=room.name||'—';
+  document.getElementById('pf').textContent=room.floor||'—';
+  document.getElementById('pqr').src=`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&bgcolor=ffffff&color=1a1e38&margin=1&qzone=1`;
+}
+function printQR(){document.getElementById('parea').style.display='flex';window.print();setTimeout(()=>document.getElementById('parea').style.display='none',600);}
+function copyLink(){const base=room.appUrl||location.href.split('?')[0],url=base+'?sala='+encodeURIComponent(room.name);navigator.clipboard?.writeText(url).then(()=>toast('Link copiado!','ok')).catch(()=>{const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();toast('Link copiado!','ok');});}
+
+/* ── TABS ── */
+function goTab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(e=>e.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+  document.getElementById('nb-'+t).classList.add('on');
+  if(t==='edit')fillEdit();
+  if(t==='qr')updateQR();
+}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+
+/* ── CLOCK ── */
+function tick(){
+  const n=new Date();
+  document.getElementById('clk-t').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  const days=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  document.getElementById('clk-d').textContent=days[n.getDay()]+', '+n.getDate()+' '+months[n.getMonth()]+' '+n.getFullYear();
+}
+setInterval(tick,1000);tick();
+setInterval(()=>renderStatus(),30000);
+
+/* ── TOAST ── */
+function toast(msg,type='info'){
+  const icons={ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>',err:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'};
+  const el=document.createElement('div');el.className='toast '+type;el.innerHTML=(icons[type]||icons.info)+'<span>'+msg+'</span>';
+  document.getElementById('toasts').appendChild(el);setTimeout(()=>el.remove(),3200);
+}
+
+/* ── CONFIG FIREBASE (fixo — conecta em qualquer dispositivo) ── */
+const FB_CONFIG = {
+  key: "AIzaSyCbl4nFuHOq6Emw9a68JyaREPNpDdjrz4k",
+  url: "https://sala-conecta-default-rtdb.firebaseio.com",
+  pid: "sala-conecta",
+  rid: "sala-1"
+};
+
+/* ── INIT ── */
+(function(){
+  // Preenche o form de setup com os valores fixos
+  document.getElementById('skey').value = FB_CONFIG.key;
+  document.getElementById('surl').value = FB_CONFIG.url;
+  document.getElementById('spid').value = FB_CONFIG.pid;
+  document.getElementById('srid').value = FB_CONFIG.rid;
+  // Conecta automaticamente sem mostrar tela de setup
+  try{
+    try{firebase.app();}catch{firebase.initializeApp({apiKey:FB_CONFIG.key,databaseURL:FB_CONFIG.url,projectId:FB_CONFIG.pid});}
+    db=firebase.database(); rpath=FB_CONFIG.rid;
+    startListeners(); monitorConn();
+  }catch(e){
+    console.error('Firebase error:',e);
+  }
+  renderStatus(); renderAgenda();
+})();
+</script>
+</body>
+</html>
