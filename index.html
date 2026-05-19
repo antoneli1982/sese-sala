@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1a1e38"/>
@@ -371,6 +374,7 @@ window.addEventListener('unhandledrejection',e=>{
 });
 
 const RES=['Projetor','TV/Monitor','Videoconferência','Quadro Branco','Wi-Fi','Ar-condicionado','Café/Água','Acessibilidade'];
+const APP_VERSION='2026-05-18-sync-fix-2';
 let room={name:'Sala Conecta',cap:12,floor:'1º Andar',resp:'Responsável',resources:['Projetor','Wi-Fi'],desc:'',appUrl:location.href.split('?')[0],manualStatus:null};
 let meetings=[],cancelTarget=null,editingKey=null,db=null,rpath='sala-1';
 
@@ -461,10 +465,13 @@ function monitorConn(){
     d.title=ok?'Conectado — sincronizando em tempo real':'Reconectando…';
     const now=new Date();
     const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    document.getElementById('synctxt').textContent=ok?'🟢 Sincronizado às '+hm+' · '+meetings.length+' reunião(ões)':'🟡 Reconectando…';
+    document.getElementById('synctxt').textContent=ok
+      ? '🟢 Firebase '+rpath+' · '+meetings.length+' reunião(ões) · '+hm+' · v'+APP_VERSION
+      : '🟡 Reconectando ao Firebase '+rpath+' · v'+APP_VERSION;
     // Quando reconecta, força reload dos dados
     if(ok){
-      setTimeout(()=>{renderAgenda();renderStatus();},400);
+      try{firebase.database().goOnline();}catch(e){}
+      setTimeout(()=>{forceFirebaseRefresh(false);},300);
     }
   });
 
@@ -473,7 +480,7 @@ function monitorConn(){
     if(document.visibilityState==='visible'&&db){
       try{
         firebase.database().goOnline();
-        setTimeout(()=>{renderAgenda();renderStatus();},600);
+        setTimeout(()=>{forceFirebaseRefresh(false);},600);
       }catch(e){}
     }
   });
@@ -481,9 +488,43 @@ function monitorConn(){
   // Refresh a cada 60s para garantir dados atualizados no mobile
   setInterval(()=>{
     if(document.visibilityState==='visible'){
-      renderAgenda(); renderStatus();
+      forceFirebaseRefresh(false);
     }
   },60000);
+}
+function forceFirebaseRefresh(showToast=true){
+  if(!db){loadLocal();renderAgenda();renderStatus();if(showToast)toast('Modo local: Firebase não conectado','err');return;}
+  Promise.all([
+    db.ref(rpath+'/room').once('value'),
+    db.ref(rpath+'/meetings').once('value')
+  ]).then(([roomSnap,meetSnap])=>{
+    const rd=roomSnap.val();
+    if(rd) room={...room,...rd};
+
+    const fbMeetings=[];
+    meetSnap.forEach(c=>fbMeetings.push({...c.val(),_k:c.key}));
+
+    meetings=fbMeetings;
+    try{
+      const raw=localStorage.getItem('sese_meetings');
+      if(raw){
+        JSON.parse(raw).forEach(lm=>{
+          if(!meetings.find(m=>m.title===lm.title&&m.date===lm.date&&m.start===lm.start))
+            meetings.push(lm);
+        });
+      }
+    }catch(e){}
+
+    meetings.sort((a,b)=>a.date!==b.date?a.date.localeCompare(b.date):toM(a.start)-toM(b.start));
+    renderAgenda();renderStatus();
+    const now=new Date();
+    const hm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('synctxt').textContent='🟢 Firebase '+rpath+' · '+meetings.length+' reunião(ões) · '+hm+' · v'+APP_VERSION;
+    if(showToast)toast('Dados atualizados do Firebase','ok');
+  }).catch(e=>{
+    console.error('[SESÉ] Erro ao atualizar Firebase:',e);
+    if(showToast)toast('Erro ao ler Firebase: '+e.message,'err');
+  });
 }
 function saveLocal(){
   // Salva TODAS as reuniões pendentes (com chave local 'l...')
@@ -725,23 +766,34 @@ function saveMeet(){
     return;
   }
 
-  // MODO CRIAÇÃO
+  // MODO CRIAÇÃO — grava primeiro no Firebase. Só usa localStorage se o Firebase falhar.
+  if(db){
+    const fbData={title,date,start,end,resp:data.resp,participants:data.participants,notes:data.notes,status:'scheduled'};
+    db.ref(rpath+'/meetings').push(fbData)
+      .then(ref=>{
+        console.log('[SESÉ] Firebase confirmou. Key:', ref.key);
+        closeOv('ov-meet');
+        toast('Reunião sincronizada: '+title,'ok');
+        forceFirebaseRefresh(false);
+      })
+      .catch(e=>{
+        console.error('[SESÉ] Firebase rejeitou:', e.message);
+        const localKey='l'+Date.now();
+        meetings.push({...data,_k:localKey});
+        saveLocal();
+        renderAgenda(); renderStatus();
+        closeOv('ov-meet');
+        toast('⚠️ Firebase: '+e.message+' (salvo apenas neste aparelho)','err');
+      });
+    return;
+  }
+
   const localKey='l'+Date.now();
   meetings.push({...data,_k:localKey});
   saveLocal();
   renderAgenda(); renderStatus();
   closeOv('ov-meet');
-  toast('Reunião agendada: '+title,'ok');
-
-  if(db){
-    const fbData={title,date,start,end,resp:data.resp,participants:data.participants,notes:data.notes,status:'scheduled'};
-    db.ref(rpath+'/meetings').push(fbData)
-      .then(ref=>{ console.log('[SESÉ] Firebase confirmou. Key:', ref.key); })
-      .catch(e=>{
-        console.error('[SESÉ] Firebase rejeitou:', e.message);
-        toast('⚠️ Firebase: '+e.message+' (salvo localmente)','err');
-      });
-  }
+  toast('Salvo apenas neste aparelho — Firebase não conectado','err');
 }
 function openCancel(key,title){
   cancelTarget=key;
@@ -791,12 +843,14 @@ function updateQR(){
   const base=room.appUrl||location.href.split('?')[0];
   const data=encodeURIComponent(base+'?sala='+encodeURIComponent(room.name));
   const src=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data}&bgcolor=ffffff&color=1a1e38&margin=1&qzone=1`;
-  document.getElementById('qrimg').src=src;
-  document.getElementById('qrn').textContent=room.name||'—';
-  document.getElementById('qrf').textContent=room.floor||'—';
-  document.getElementById('pn').textContent=room.name||'—';
-  document.getElementById('pf').textContent=room.floor||'—';
-  document.getElementById('pqr').src=`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&bgcolor=ffffff&color=1a1e38&margin=1&qzone=1`;
+  const setSrc=(id,val)=>{const el=document.getElementById(id);if(el)el.src=val;};
+  const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setSrc('qrimg',src);
+  setText('qrn',room.name||'—');
+  setText('qrf',room.floor||'—');
+  setText('pn',room.name||'—');
+  setText('pf',room.floor||'—');
+  setSrc('pqr',`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${data}&bgcolor=ffffff&color=1a1e38&margin=1&qzone=1`);
 }
 function printQR(){document.getElementById('parea').style.display='flex';window.print();setTimeout(()=>document.getElementById('parea').style.display='none',600);}
 function copyLink(){const base=room.appUrl||location.href.split('?')[0],url=base+'?sala='+encodeURIComponent(room.name);navigator.clipboard?.writeText(url).then(()=>toast('Link copiado!','ok')).catch(()=>{const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();toast('Link copiado!','ok');});}
@@ -815,8 +869,7 @@ function forceRefresh(){
   const icon=document.getElementById('refresh-icon');
   if(icon){icon.style.transition='transform .7s';icon.style.transform='rotate(360deg)';setTimeout(()=>{icon.style.transition='';icon.style.transform='';},750);}
   if(db){try{firebase.database().goOnline();}catch(e){}}
-  loadLocal(); renderAgenda(); renderStatus();
-  toast('Atualizado!','ok');
+  forceFirebaseRefresh(true);
 }
 
 /* ── CLOCK ── */
@@ -849,7 +902,7 @@ const FB_CONFIG = {
    em qualquer WebView (iOS WKWebView, Android antigo, modo estrito etc.) */
 Object.assign(window,{
   openAdd, openEdit, saveMeet, openCancel, doCancel, deleteMeet, closeOv, forceRefresh,
-  openSetup, connectFB, setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast
+  openSetup, connectFB, setStatus, goTab, saveRoom, scrollToDay, printQR, copyLink, toast, forceFirebaseRefresh
 });
 
 (function(){
